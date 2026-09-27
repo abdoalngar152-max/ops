@@ -27,9 +27,15 @@ const TOKEN = String(process.env.DISCORD_TOKEN || '').trim();
 const PREMIUM_ROLE_ID = '1544858160982917261';
 const MASS_SUMMON_ROLE_ID = '1546263383526088805';
 
-const DB_FILE = path.join(__dirname, 'economy.json');
-const DB_BACKUP_FILE = path.join(__dirname, 'economy.backup.json');
-const DB_TEMP_FILE = path.join(__dirname, 'economy.tmp.json');
+const DATA_DIR = '/data';
+
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const DB_FILE = path.join(DATA_DIR, 'economy.json');
+const DB_BACKUP_FILE = path.join(DATA_DIR, 'economy.backup.json');
+const DB_TEMP_FILE = path.join(DATA_DIR, 'economy.tmp.json');
 
 const DEFAULT_CURRENCY_NAME = '𝐎𝐏𝐬';
 
