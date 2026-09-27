@@ -37,26 +37,14 @@ if (!fs.existsSync(DATA_DIR)) {
     });
 }
 
-const DB_FILE = path.join(
-    DATA_DIR,
-    'economy.json'
-);
-
-const DB_BACKUP_FILE = path.join(
-    DATA_DIR,
-    'economy.backup.json'
-);
-
-const DB_TEMP_FILE = path.join(
-    DATA_DIR,
-    'economy.tmp.json'
-);
+const DB_FILE = path.join(DATA_DIR, 'economy.json');
+const DB_BACKUP_FILE = path.join(DATA_DIR, 'economy.backup.json');
+const DB_TEMP_FILE = path.join(DATA_DIR, 'economy.tmp.json');
 
 if (!TOKEN) {
     console.error(
         '❌ DISCORD_TOKEN غير موجود في Railway Variables.'
     );
-
     process.exit(1);
 }
 
@@ -80,18 +68,8 @@ const client = new Client({
 ========================================================= */
 
 const TEXT_XP_PER_MESSAGE = 15;
-
-/*
-   يمنع سبام الرسائل من رفع اللفل بسرعة.
-   كل عضو يأخذ XP كتابي مرة واحدة كل 30 ثانية.
-*/
 const TEXT_XP_COOLDOWN = 30 * 1000;
-
-/*
-   كل دقيقة في الروم الصوتي = 10 XP
-*/
 const VOICE_XP_PER_MINUTE = 10;
-
 const VOICE_TICK = 60 * 1000;
 
 /* =========================================================
@@ -99,7 +77,6 @@ const VOICE_TICK = 60 * 1000;
 ========================================================= */
 
 const textCooldowns = new Map();
-
 const pendingTransfers = new Map();
 
 /* =========================================================
@@ -156,9 +133,7 @@ function loadDB() {
             typeof data !== 'object' ||
             Array.isArray(data)
         ) {
-            throw new Error(
-                'Invalid database'
-            );
+            throw new Error('Invalid database');
         }
 
         if (
@@ -182,19 +157,14 @@ function loadDB() {
 
         try {
 
-            if (
-                fs.existsSync(
-                    DB_BACKUP_FILE
-                )
-            ) {
+            if (fs.existsSync(DB_BACKUP_FILE)) {
 
-                const backup =
-                    JSON.parse(
-                        fs.readFileSync(
-                            DB_BACKUP_FILE,
-                            'utf8'
-                        )
-                    );
+                const backup = JSON.parse(
+                    fs.readFileSync(
+                        DB_BACKUP_FILE,
+                        'utf8'
+                    )
+                );
 
                 if (
                     backup &&
@@ -242,12 +212,11 @@ function saveDB(data) {
         data.guilds = {};
     }
 
-    const json =
-        JSON.stringify(
-            data,
-            null,
-            2
-        );
+    const json = JSON.stringify(
+        data,
+        null,
+        2
+    );
 
     try {
 
@@ -257,9 +226,7 @@ function saveDB(data) {
             'utf8'
         );
 
-        if (
-            fs.existsSync(DB_FILE)
-        ) {
+        if (fs.existsSync(DB_FILE)) {
             fs.copyFileSync(
                 DB_FILE,
                 DB_BACKUP_FILE
@@ -279,17 +246,9 @@ function saveDB(data) {
         );
 
         try {
-
-            if (
-                fs.existsSync(
-                    DB_TEMP_FILE
-                )
-            ) {
-                fs.unlinkSync(
-                    DB_TEMP_FILE
-                );
+            if (fs.existsSync(DB_TEMP_FILE)) {
+                fs.unlinkSync(DB_TEMP_FILE);
             }
-
         } catch {}
 
         try {
@@ -374,11 +333,8 @@ function ensureUser(
 
         guildData.users[userId] = {
             balance: 0,
-
             textXP: 0,
-
             voiceXP: 0,
-
             voiceLastTickAt: null
         };
     }
@@ -389,31 +345,22 @@ function ensureUser(
     if (
         typeof user.balance !== 'number'
     ) {
-
         user.balance =
-            Number(
-                user.balance
-            ) || 0;
+            Number(user.balance) || 0;
     }
 
     if (
         typeof user.textXP !== 'number'
     ) {
-
         user.textXP =
-            Number(
-                user.textXP
-            ) || 0;
+            Number(user.textXP) || 0;
     }
 
     if (
         typeof user.voiceXP !== 'number'
     ) {
-
         user.voiceXP =
-            Number(
-                user.voiceXP
-            ) || 0;
+            Number(user.voiceXP) || 0;
     }
 
     if (
@@ -422,7 +369,6 @@ function ensureUser(
             'voiceLastTickAt'
         )
     ) {
-
         user.voiceLastTickAt = null;
     }
 
@@ -434,7 +380,6 @@ function getUser(
     guildId,
     userId
 ) {
-
     return ensureUser(
         db,
         guildId,
@@ -490,9 +435,7 @@ function parseAmount(value) {
     }
 
     const number =
-        Number(
-            match[1]
-        );
+        Number(match[1]);
 
     const multipliers = {
         k: 1000,
@@ -509,34 +452,24 @@ function parseAmount(value) {
             ] || 1
         );
 
-    if (
-        !Number.isFinite(amount)
-    ) {
+    if (!Number.isFinite(amount)) {
         return NaN;
     }
 
-    return Math.floor(
-        amount
-    );
+    return Math.floor(amount);
 }
 
 /* =========================================================
    FORMAT AMOUNT
 ========================================================= */
 
-function formatAmount(
-    amount
-) {
+function formatAmount(amount) {
 
     amount =
         Number(amount) || 0;
 
-    if (
-        amount < 1000
-    ) {
-        return String(
-            amount
-        );
+    if (amount < 1000) {
+        return String(amount);
     }
 
     const units = [
@@ -558,24 +491,14 @@ function formatAmount(
         }
     ];
 
-    for (
-        const unit of units
-    ) {
+    for (const unit of units) {
 
-        if (
-            amount >= unit.value
-        ) {
+        if (amount >= unit.value) {
 
             const result =
-                amount /
-                unit.value;
+                amount / unit.value;
 
-            if (
-                Number.isInteger(
-                    result
-                )
-            ) {
-
+            if (Number.isInteger(result)) {
                 return `${result}${unit.suffix}`;
             }
 
@@ -585,9 +508,7 @@ function formatAmount(
         }
     }
 
-    return String(
-        amount
-    );
+    return String(amount);
 }
 
 /* =========================================================
@@ -612,7 +533,6 @@ function transferKey(
     guildId,
     userId
 ) {
-
     return `${guildId}:${userId}`;
 }
 
@@ -621,19 +541,12 @@ function cleanupPendingForGuild(
 ) {
 
     for (
-        const [
-            key,
-            value
-        ] of pendingTransfers.entries()
+        const [key, value]
+        of pendingTransfers.entries()
     ) {
 
-        if (
-            value.guildId === guildId
-        ) {
-
-            pendingTransfers.delete(
-                key
-            );
+        if (value.guildId === guildId) {
+            pendingTransfers.delete(key);
         }
     }
 }
@@ -641,18 +554,6 @@ function cleanupPendingForGuild(
 /* =========================================================
    RANK SYSTEM
 ========================================================= */
-
-/*
-   XP المطلوب لكل لفل:
-
-   LV 1 -> 100 XP
-   LV 2 -> 150 XP
-   LV 3 -> 200 XP
-   LV 4 -> 250 XP
-   ...
-
-   كلما ارتفع اللفل يزيد XP المطلوب.
-*/
 
 function xpNeeded(level) {
 
@@ -669,9 +570,7 @@ function xpNeeded(level) {
    LEVEL INFO
 ========================================================= */
 
-function levelInfo(
-    totalXP
-) {
+function levelInfo(totalXP) {
 
     let level = 1;
 
@@ -679,9 +578,7 @@ function levelInfo(
         Math.max(
             0,
             Math.floor(
-                Number(
-                    totalXP
-                ) || 0
+                Number(totalXP) || 0
             )
         );
 
@@ -713,10 +610,8 @@ function levelInfo(
 
     return {
         level,
-        currentXP:
-            remainingXP,
-        nextXP:
-            needed,
+        currentXP: remainingXP,
+        nextXP: needed,
         percent
     };
 }
@@ -756,15 +651,12 @@ function addTextXP(
         Date.now();
 
     const last =
-        textCooldowns.get(
-            key
-        ) || 0;
+        textCooldowns.get(key) || 0;
 
     if (
         now - last <
         TEXT_XP_COOLDOWN
     ) {
-
         return false;
     }
 
@@ -805,9 +697,7 @@ function awardVoiceXP(
             userId
         );
 
-    if (
-        !user.voiceLastTickAt
-    ) {
+    if (!user.voiceLastTickAt) {
 
         user.voiceLastTickAt =
             now;
@@ -826,14 +716,10 @@ function awardVoiceXP(
 
     const minutes =
         Math.floor(
-            elapsed /
-            60000
+            elapsed / 60000
         );
 
-    if (
-        minutes <= 0
-    ) {
-
+    if (minutes <= 0) {
         return false;
     }
 
@@ -869,9 +755,7 @@ async function updateAllVoiceXP() {
             guild.members.cache.values()
         ) {
 
-            if (
-                member.user.bot
-            ) {
+            if (member.user.bot) {
                 continue;
             }
 
@@ -891,16 +775,12 @@ async function updateAllVoiceXP() {
                     now
                 )
             ) {
-
                 changed = true;
             }
         }
     }
 
-    if (
-        changed
-    ) {
-
+    if (changed) {
         saveDB(db);
     }
 }
@@ -909,33 +789,14 @@ async function updateAllVoiceXP() {
    SVG HELPERS
 ========================================================= */
 
-function escapeXML(
-    value
-) {
+function escapeXML(value) {
 
-    return String(
-        value ?? ''
-    )
-        .replace(
-            /&/g,
-            '&amp;'
-        )
-        .replace(
-            /</g,
-            '&lt;'
-        )
-        .replace(
-            />/g,
-            '&gt;'
-        )
-        .replace(
-            /"/g,
-            '&quot;'
-        )
-        .replace(
-            /'/g,
-            '&apos;'
-        );
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
 }
 
 /* =========================================================
@@ -957,9 +818,7 @@ async function imageToPNG(
         const response =
             await fetch(url);
 
-        if (
-            !response.ok
-        ) {
+        if (!response.ok) {
             throw new Error(
                 `HTTP ${response.status}`
             );
@@ -970,9 +829,7 @@ async function imageToPNG(
                 await response.arrayBuffer()
             );
 
-        return await sharp(
-            buffer
-        )
+        return await sharp(buffer)
             .resize(
                 width,
                 height,
@@ -984,7 +841,6 @@ async function imageToPNG(
             .toBuffer();
 
     } catch {
-
         return null;
     }
 }
@@ -993,9 +849,7 @@ async function imageToPNG(
    DATA URI
 ========================================================= */
 
-function dataURI(
-    buffer
-) {
+function dataURI(buffer) {
 
     if (!buffer) {
         return '';
@@ -1003,9 +857,7 @@ function dataURI(
 
     return (
         'data:image/png;base64,' +
-        buffer.toString(
-            'base64'
-        )
+        buffer.toString('base64')
     );
 }
 
@@ -1041,7 +893,7 @@ function progressBar(
             width="${width}"
             height="18"
             rx="9"
-            fill="#252a34"
+            fill="#252525"
         />
 
         <rect
@@ -1056,111 +908,7 @@ function progressBar(
 }
 
 /* =========================================================
-   ROBOT FACE
-========================================================= */
-
-function robotFaceSVG() {
-
-    return `
-        <g transform="translate(560 790)">
-
-            <circle
-                cx="80"
-                cy="80"
-                r="62"
-                fill="#0b1018"
-                stroke="#2b3444"
-                stroke-width="3"
-            />
-
-            <defs>
-
-                <clipPath id="robotClip">
-
-                    <circle
-                        cx="80"
-                        cy="80"
-                        r="54"
-                    />
-
-                </clipPath>
-
-            </defs>
-
-            <g clip-path="url(#robotClip)">
-
-                <rect
-                    x="26"
-                    y="26"
-                    width="54"
-                    height="108"
-                    fill="#20a9ff"
-                />
-
-                <rect
-                    x="80"
-                    y="26"
-                    width="54"
-                    height="108"
-                    fill="#d5a62a"
-                />
-
-                <circle
-                    cx="80"
-                    cy="80"
-                    r="54"
-                    fill="none"
-                    stroke="#111722"
-                    stroke-width="6"
-                />
-
-                <rect
-                    x="42"
-                    y="56"
-                    width="76"
-                    height="46"
-                    rx="22"
-                    fill="#111722"
-                />
-
-                <circle
-                    cx="62"
-                    cy="79"
-                    r="7"
-                    fill="#20d9ff"
-                />
-
-                <circle
-                    cx="98"
-                    cy="79"
-                    r="7"
-                    fill="#ffb51e"
-                />
-
-            </g>
-
-            <rect
-                x="72"
-                y="10"
-                width="16"
-                height="14"
-                rx="5"
-                fill="#bfc6d1"
-            />
-
-            <circle
-                cx="80"
-                cy="6"
-                r="5"
-                fill="#d5a62a"
-            />
-
-        </g>
-    `;
-}
-
-/* =========================================================
-   CREATE RANK IMAGE
+   NEW RANK CARD DESIGN
 ========================================================= */
 
 async function createRankCard(
@@ -1181,11 +929,6 @@ async function createRankCard(
             user.id
         );
 
-    /*
-       إذا كان العضو داخل روم صوتي
-       نحسب الوقت الحالي قبل إنشاء الصورة.
-    */
-
     if (
         isCountedVoice(
             member.voice.channel,
@@ -1199,7 +942,6 @@ async function createRankCard(
                 user.id
             )
         ) {
-
             saveDB(db);
         }
     }
@@ -1227,13 +969,12 @@ async function createRankCard(
     const avatar =
         await imageToPNG(
             avatarURL,
-            260,
-            260
+            320,
+            320
         );
 
     /* =====================================================
-       USER BANNER
-       إذا ما عنده بنر نستخدم بنر السيرفر
+       BANNER
     ===================================================== */
 
     const bannerURL =
@@ -1249,37 +990,57 @@ async function createRankCard(
     const banner =
         await imageToPNG(
             bannerURL,
-            1200,
-            260
+            1400,
+            360
         );
 
     const avatarData =
-        dataURI(
-            avatar
-        );
+        dataURI(avatar);
 
     const bannerData =
-        dataURI(
-            banner
+        dataURI(banner);
+
+    const textFilled =
+        Math.round(
+            555 *
+            (
+                Math.max(
+                    0,
+                    Math.min(
+                        100,
+                        textLevel.percent
+                    )
+                ) / 100
+            )
         );
 
-    /* =====================================================
-       SVG
-    ===================================================== */
+    const voiceFilled =
+        Math.round(
+            555 *
+            (
+                Math.max(
+                    0,
+                    Math.min(
+                        100,
+                        voiceLevel.percent
+                    )
+                ) / 100
+            )
+        );
 
     const svg = `
 
 <svg
-    width="1200"
-    height="920"
-    viewBox="0 0 1200 920"
+    width="1400"
+    height="900"
+    viewBox="0 0 1400 900"
     xmlns="http://www.w3.org/2000/svg"
 >
 
     <defs>
 
         <linearGradient
-            id="background"
+            id="bg"
             x1="0"
             y1="0"
             x2="1"
@@ -1288,17 +1049,39 @@ async function createRankCard(
 
             <stop
                 offset="0%"
-                stop-color="#07090d"
+                stop-color="#050505"
             />
 
             <stop
                 offset="50%"
-                stop-color="#101722"
+                stop-color="#10100f"
             />
 
             <stop
                 offset="100%"
-                stop-color="#07090d"
+                stop-color="#050505"
+            />
+
+        </linearGradient>
+
+        <linearGradient
+            id="bannerOverlay"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+        >
+
+            <stop
+                offset="0%"
+                stop-color="#000000"
+                stop-opacity="0.10"
+            />
+
+            <stop
+                offset="100%"
+                stop-color="#000000"
+                stop-opacity="0.82"
             />
 
         </linearGradient>
@@ -1313,17 +1096,67 @@ async function createRankCard(
 
             <stop
                 offset="0%"
-                stop-color="#987018"
+                stop-color="#8b6817"
             />
 
             <stop
                 offset="50%"
-                stop-color="#e2b83f"
+                stop-color="#f0c64d"
             />
 
             <stop
                 offset="100%"
-                stop-color="#8e6715"
+                stop-color="#a87d1c"
+            />
+
+        </linearGradient>
+
+        <linearGradient
+            id="goldXP"
+            x1="0"
+            y1="0"
+            x2="1"
+            y2="0"
+        >
+
+            <stop
+                offset="0%"
+                stop-color="#9b741b"
+            />
+
+            <stop
+                offset="50%"
+                stop-color="#e7bb42"
+            />
+
+            <stop
+                offset="100%"
+                stop-color="#ffd96a"
+            />
+
+        </linearGradient>
+
+        <linearGradient
+            id="blueXP"
+            x1="0"
+            y1="0"
+            x2="1"
+            y2="0"
+        >
+
+            <stop
+                offset="0%"
+                stop-color="#2167c9"
+            />
+
+            <stop
+                offset="50%"
+                stop-color="#3d9cff"
+            />
+
+            <stop
+                offset="100%"
+                stop-color="#70c1ff"
             />
 
         </linearGradient>
@@ -1331,11 +1164,11 @@ async function createRankCard(
         <clipPath id="bannerClip">
 
             <rect
-                x="30"
-                y="30"
-                width="1140"
-                height="245"
-                rx="28"
+                x="35"
+                y="35"
+                width="1330"
+                height="330"
+                rx="30"
             />
 
         </clipPath>
@@ -1343,17 +1176,23 @@ async function createRankCard(
         <clipPath id="avatarClip">
 
             <circle
-                cx="160"
-                cy="350"
-                r="125"
+                cx="190"
+                cy="360"
+                r="118"
             />
 
         </clipPath>
 
-        <filter id="glow">
+        <filter
+            id="softGlow"
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="200%"
+        >
 
             <feGaussianBlur
-                stdDeviation="5"
+                stdDeviation="7"
                 result="blur"
             />
 
@@ -1371,29 +1210,76 @@ async function createRankCard(
 
         </filter>
 
+        <filter
+            id="shadow"
+            x="-30%"
+            y="-30%"
+            width="160%"
+            height="160%"
+        >
+
+            <feDropShadow
+                dx="0"
+                dy="12"
+                stdDeviation="18"
+                flood-color="#000000"
+                flood-opacity="0.65"
+            />
+
+        </filter>
+
     </defs>
 
 
     <!-- BACKGROUND -->
 
     <rect
-        width="1200"
-        height="920"
-        fill="url(#background)"
+        width="1400"
+        height="900"
+        fill="url(#bg)"
+    />
+
+    <circle
+        cx="1250"
+        cy="90"
+        r="180"
+        fill="#d4ac0d"
+        opacity="0.025"
+    />
+
+    <circle
+        cx="80"
+        cy="820"
+        r="220"
+        fill="#d4ac0d"
+        opacity="0.018"
+    />
+
+
+    <!-- MAIN CARD -->
+
+    <rect
+        x="25"
+        y="25"
+        width="1350"
+        height="850"
+        rx="34"
+        fill="#0b0b0b"
+        stroke="#242424"
+        stroke-width="2"
+        filter="url(#shadow)"
     />
 
 
     <!-- BANNER -->
 
     <rect
-        x="30"
-        y="30"
-        width="1140"
-        height="245"
-        rx="28"
-        fill="#141922"
-        stroke="#2b3546"
-        stroke-width="2"
+        x="35"
+        y="35"
+        width="1330"
+        height="330"
+        rx="30"
+        fill="#151515"
     />
 
     ${
@@ -1403,68 +1289,76 @@ async function createRankCard(
 
                 <image
                     href="${bannerData}"
-                    x="30"
-                    y="30"
-                    width="1140"
-                    height="245"
+                    x="35"
+                    y="35"
+                    width="1330"
+                    height="330"
                     preserveAspectRatio="xMidYMid slice"
-                    opacity="0.82"
+                />
+
+                <rect
+                    x="35"
+                    y="35"
+                    width="1330"
+                    height="330"
+                    fill="url(#bannerOverlay)"
                 />
 
             </g>
         `
-        : ''
+        : `
+            <rect
+                x="35"
+                y="35"
+                width="1330"
+                height="330"
+                rx="30"
+                fill="#111111"
+            />
+
+            <circle
+                cx="1180"
+                cy="100"
+                r="210"
+                fill="#d4ac0d"
+                opacity="0.045"
+            />
+        `
     }
 
 
+    <!-- GOLD LINE -->
+
     <rect
-        x="30"
-        y="30"
-        width="1140"
-        height="245"
-        rx="28"
-        fill="#000"
-        opacity="0.35"
+        x="65"
+        y="348"
+        width="1270"
+        height="2"
+        rx="1"
+        fill="url(#gold)"
+        opacity="0.65"
     />
-
-
-    <!-- USERNAME -->
-
-    <text
-        x="600"
-        y="150"
-        fill="#ffffff"
-        text-anchor="middle"
-        font-size="42"
-        font-family="Arial, sans-serif"
-        font-weight="700"
-    >
-        ${escapeXML(user.username)}
-    </text>
-
-
-    <text
-        x="600"
-        y="200"
-        fill="#9ca8ba"
-        text-anchor="middle"
-        font-size="22"
-        font-family="Arial, sans-serif"
-    >
-        OPS PROFILE
-    </text>
 
 
     <!-- AVATAR -->
 
     <circle
-        cx="160"
-        cy="350"
-        r="134"
-        fill="#090d14"
-        stroke="#2c91ff"
-        stroke-width="5"
-        filter="url(#glow)"
+        cx="190"
+        cy="360"
+        r="137"
+        fill="#080808"
+        stroke="#171717"
+        stroke-width="8"
+    />
+
+    <circle
+        cx="190"
+        cy="360"
+        r="128"
+        fill="none"
+        stroke="url(#gold)"
+        stroke-width="4"
+        filter="url(#softGlow)"
     />
 
     ${
@@ -1474,10 +1368,10 @@ async function createRankCard(
 
                 <image
                     href="${avatarData}"
-                    x="35"
-                    y="225"
-                    width="250"
-                    height="250"
+                    x="72"
+                    y="242"
+                    width="236"
+                    height="236"
                     preserveAspectRatio="xMidYMid slice"
                 />
 
@@ -1486,14 +1380,13 @@ async function createRankCard(
         : ''
     }
 
-
     <circle
-        cx="160"
-        cy="350"
-        r="125"
+        cx="190"
+        cy="360"
+        r="118"
         fill="none"
-        stroke="#d7a92d"
-        stroke-opacity="0.65"
+        stroke="#ffffff"
+        stroke-opacity="0.08"
         stroke-width="2"
     />
 
@@ -1501,20 +1394,27 @@ async function createRankCard(
     <!-- ONLINE -->
 
     <circle
-        cx="250"
-        cy="440"
-        r="15"
-        fill="#20d67b"
-        stroke="#0a0d12"
+        cx="280"
+        cy="448"
+        r="20"
+        fill="#0b0b0b"
+        stroke="#0b0b0b"
         stroke-width="7"
     />
 
+    <circle
+        cx="280"
+        cy="448"
+        r="12"
+        fill="#35d17b"
+    />
 
-    <!-- USERNAME -->
+
+    <!-- USER INFO -->
 
     <text
-        x="335"
-        y="335"
+        x="355"
+        y="295"
         fill="#ffffff"
         font-size="48"
         font-family="Arial, sans-serif"
@@ -1523,90 +1423,163 @@ async function createRankCard(
         ${escapeXML(user.username)}
     </text>
 
-
-    <!-- ORIGINAL USERNAME -->
-
     <text
-        x="335"
-        y="375"
-        fill="#8995a7"
-        font-size="25"
+        x="357"
+        y="335"
+        fill="#858585"
+        font-size="22"
         font-family="Arial, sans-serif"
     >
         @${escapeXML(user.username)}
     </text>
 
 
-    <circle
-        cx="350"
-        cy="415"
-        r="7"
-        fill="#20d67b"
-    />
-
-    <text
-        x="370"
-        y="423"
-        fill="#c6ced9"
-        font-size="22"
-        font-family="Arial, sans-serif"
-    >
-        متصل الآن
-    </text>
-
-
-    <!-- TEXT LEVEL -->
+    <!-- MEMBER BADGE -->
 
     <rect
-        x="40"
-        y="515"
-        width="540"
-        height="210"
-        rx="25"
-        fill="#111721"
-        stroke="#1f91ff"
-        stroke-width="2"
+        x="355"
+        y="375"
+        width="148"
+        height="42"
+        rx="21"
+        fill="#151515"
+        stroke="#3a2d0e"
+        stroke-width="1"
+    />
+
+    <circle
+        cx="380"
+        cy="396"
+        r="6"
+        fill="#d4ac0d"
     />
 
     <text
-        x="80"
-        y="565"
-        fill="#55b4ff"
-        font-size="28"
+        x="397"
+        y="404"
+        fill="#d8b348"
+        font-size="17"
         font-family="Arial, sans-serif"
         font-weight="700"
     >
-        اللفل الكتابي
+        OPS MEMBER
     </text>
 
 
+    <!-- TOP RIGHT -->
+
     <text
-        x="80"
-        y="620"
+        x="1290"
+        y="290"
+        fill="#6e6e6e"
+        text-anchor="end"
+        font-size="17"
+        font-family="Arial, sans-serif"
+        letter-spacing="4"
+    >
+        RANK PROFILE
+    </text>
+
+    <text
+        x="1290"
+        y="325"
+        fill="#d4ac0d"
+        text-anchor="end"
+        font-size="25"
+        font-family="Arial, sans-serif"
+        font-weight="700"
+        letter-spacing="2"
+    >
+        OPS SYSTEM
+    </text>
+
+
+    <!-- TEXT LEVEL CARD -->
+
+    <rect
+        x="55"
+        y="535"
+        width="625"
+        height="245"
+        rx="25"
+        fill="#111111"
+        stroke="#252525"
+        stroke-width="2"
+    />
+
+    <rect
+        x="55"
+        y="535"
+        width="5"
+        height="245"
+        rx="2"
+        fill="url(#blueXP)"
+    />
+
+    <text
+        x="90"
+        y="585"
+        fill="#7abfff"
+        font-size="20"
+        font-family="Arial, sans-serif"
+        font-weight="700"
+        letter-spacing="1"
+    >
+        TEXT LEVEL
+    </text>
+
+    <text
+        x="90"
+        y="640"
         fill="#ffffff"
-        font-size="45"
+        font-size="43"
         font-family="Arial, sans-serif"
         font-weight="700"
     >
         LV. ${textLevel.level}
     </text>
 
+    <text
+        x="640"
+        y="640"
+        fill="#676767"
+        text-anchor="end"
+        font-size="17"
+        font-family="Arial, sans-serif"
+    >
+        ${textLevel.percent}% COMPLETE
+    </text>
 
-    <g transform="translate(80 645)">
 
-        ${progressBar(
-            textLevel.percent,
-            '#2f8cff'
-        )}
+    <!-- TEXT XP -->
+
+    <g transform="translate(90 665)">
+
+        <rect
+            x="0"
+            y="0"
+            width="555"
+            height="15"
+            rx="7.5"
+            fill="#222222"
+        />
+
+        <rect
+            x="0"
+            y="0"
+            width="${textFilled}"
+            height="15"
+            rx="7.5"
+            fill="url(#blueXP)"
+        />
 
     </g>
 
-
     <text
-        x="80"
-        y="695"
-        fill="#b7c2d0"
-        font-size="20"
+        x="90"
+        y="720"
+        fill="#b9b9b9"
+        font-size="18"
         font-family="Arial, sans-serif"
     >
         ${textLevel.currentXP.toLocaleString('en-US')}
@@ -1615,72 +1588,104 @@ async function createRankCard(
         XP
     </text>
 
-
     <text
-        x="500"
-        y="695"
-        fill="#7c899c"
+        x="640"
+        y="720"
+        fill="#555555"
         text-anchor="end"
-        font-size="18"
+        font-size="16"
         font-family="Arial, sans-serif"
     >
-        تفاعل في الشات
+        CHAT ACTIVITY
     </text>
 
 
-    <!-- VOICE LEVEL -->
+    <!-- VOICE LEVEL CARD -->
 
     <rect
-        x="620"
-        y="515"
-        width="540"
-        height="210"
+        x="720"
+        y="535"
+        width="625"
+        height="245"
         rx="25"
-        fill="#111721"
-        stroke="#d5a62a"
+        fill="#111111"
+        stroke="#252525"
         stroke-width="2"
     />
 
+    <rect
+        x="720"
+        y="535"
+        width="5"
+        height="245"
+        rx="2"
+        fill="url(#gold)"
+    />
 
     <text
-        x="660"
-        y="565"
-        fill="#e0b33d"
-        font-size="28"
+        x="755"
+        y="585"
+        fill="#e1b83f"
+        font-size="20"
         font-family="Arial, sans-serif"
         font-weight="700"
+        letter-spacing="1"
     >
-        اللفل الصوتي
+        VOICE LEVEL
     </text>
 
-
     <text
-        x="660"
-        y="620"
+        x="755"
+        y="640"
         fill="#ffffff"
-        font-size="45"
+        font-size="43"
         font-family="Arial, sans-serif"
         font-weight="700"
     >
         LV. ${voiceLevel.level}
     </text>
 
+    <text
+        x="1305"
+        y="640"
+        fill="#676767"
+        text-anchor="end"
+        font-size="17"
+        font-family="Arial, sans-serif"
+    >
+        ${voiceLevel.percent}% COMPLETE
+    </text>
 
-    <g transform="translate(660 645)">
 
-        ${progressBar(
-            voiceLevel.percent,
-            '#d5a62a'
-        )}
+    <!-- VOICE XP -->
+
+    <g transform="translate(755 665)">
+
+        <rect
+            x="0"
+            y="0"
+            width="555"
+            height="15"
+            rx="7.5"
+            fill="#222222"
+        />
+
+        <rect
+            x="0"
+            y="0"
+            width="${voiceFilled}"
+            height="15"
+            rx="7.5"
+            fill="url(#goldXP)"
+        />
 
     </g>
 
-
     <text
-        x="660"
-        y="695"
-        fill="#b7c2d0"
-        font-size="20"
+        x="755"
+        y="720"
+        fill="#b9b9b9"
+        font-size="18"
         font-family="Arial, sans-serif"
     >
         ${voiceLevel.currentXP.toLocaleString('en-US')}
@@ -1689,35 +1694,48 @@ async function createRankCard(
         XP
     </text>
 
-
     <text
-        x="1080"
-        y="695"
-        fill="#7c899c"
+        x="1305"
+        y="720"
+        fill="#555555"
         text-anchor="end"
-        font-size="18"
+        font-size="16"
         font-family="Arial, sans-serif"
     >
-        وقت في الروم الصوتي
+        VOICE ACTIVITY
     </text>
-
-
-    <!-- ROBOT -->
-
-    ${robotFaceSVG()}
 
 
     <!-- FOOTER -->
 
+    <rect
+        x="55"
+        y="810"
+        width="1290"
+        height="1"
+        fill="#242424"
+    />
+
     <text
-        x="600"
-        y="895"
-        fill="#5f6a7b"
-        text-anchor="middle"
-        font-size="16"
+        x="70"
+        y="842"
+        fill="#454545"
+        font-size="15"
         font-family="Arial, sans-serif"
+        letter-spacing="3"
     >
         OPS SYSTEM
+    </text>
+
+    <text
+        x="1330"
+        y="842"
+        fill="#444444"
+        text-anchor="end"
+        font-size="14"
+        font-family="Arial, sans-serif"
+    >
+        PROFILE
     </text>
 
 </svg>
@@ -1734,7 +1752,6 @@ async function createRankCard(
 
 /* =========================================================
    SLASH COMMANDS
-   فقط العملة
 ========================================================= */
 
 const slashCommands = [
@@ -1776,9 +1793,7 @@ async function registerSlashCommands() {
             new REST({
                 version: '10'
             })
-                .setToken(
-                    TOKEN
-                );
+                .setToken(TOKEN);
 
         await rest.put(
             Routes.applicationCommands(
@@ -1826,10 +1841,6 @@ client.once(
             '======================================'
         );
 
-        /*
-           تهيئة بيانات السيرفرات
-        */
-
         for (
             const guild of
             client.guilds.cache.values()
@@ -1840,19 +1851,12 @@ client.once(
                 guild.id
             );
 
-            /*
-               إذا كان عضو موجود في الصوت وقت تشغيل البوت
-               نبدأ حساب الوقت من لحظة تشغيل البوت.
-            */
-
             for (
                 const member of
                 guild.members.cache.values()
             ) {
 
-                if (
-                    member.user.bot
-                ) {
+                if (member.user.bot) {
                     continue;
                 }
 
@@ -1880,10 +1884,6 @@ client.once(
 
         await registerSlashCommands();
 
-        /* =====================================================
-           STATUS
-        ===================================================== */
-
         const statuses = [
             'نظام العملات',
             'نظام الرانك',
@@ -1899,18 +1899,13 @@ client.once(
 
                 activities: [
                     {
-                        name:
-                            'customstatus',
-
+                        name: 'customstatus',
                         type: 4,
-
-                        state:
-                            statuses[index]
+                        state: statuses[index]
                     }
                 ],
 
-                status:
-                    'online'
+                status: 'online'
             });
 
             index =
@@ -1926,10 +1921,6 @@ client.once(
             updatePresence,
             10000
         );
-
-        /*
-           تحديث XP الصوتي كل دقيقة
-        */
 
         setInterval(
             updateAllVoiceXP,
@@ -1979,25 +1970,16 @@ client.on(
 
         try {
 
-            if (
-                message.author.bot
-            ) {
+            if (message.author.bot) {
                 return;
             }
 
-            if (
-                !message.guild
-            ) {
+            if (!message.guild) {
                 return;
             }
 
             const content =
                 message.content.trim();
-
-            /*
-               كل تفاعل كتابي يعطي XP
-               حسب الكول داون
-            */
 
             addTextXP(
                 message.guild.id,
@@ -2010,16 +1992,11 @@ client.on(
                     message.guild.id
                 );
 
-            /* =================================================
-               أوامر الاقتصاد فقط في روم العملة
-            ================================================= */
-
             if (
                 !guildData.economyChannelId ||
                 guildData.economyChannelId !==
                     message.channel.id
             ) {
-
                 return;
             }
 
@@ -2032,14 +2009,10 @@ client.on(
                 content.toLowerCase() === 'ops' ||
                 content === '𝐎𝐏𝐬' ||
                 content.startsWith('رصيد ') ||
-                content
-                    .toLowerCase()
-                    .startsWith('ops ') ||
+                content.toLowerCase().startsWith('ops ') ||
                 content.startsWith('𝐎𝐏𝐬 ');
 
-            if (
-                balanceCommand
-            ) {
+            if (balanceCommand) {
 
                 const targetMember =
                     message.mentions.members.first() ||
@@ -2057,9 +2030,7 @@ client.on(
                     embeds: [
 
                         new EmbedBuilder()
-                            .setColor(
-                                '#D4AC0D'
-                            )
+                            .setColor('#D4AC0D')
 
                             .setDescription(
 
@@ -2083,15 +2054,11 @@ client.on(
             ================================================= */
 
             if (
-                content.startsWith(
-                    'تحويل'
-                )
+                content.startsWith('تحويل')
             ) {
 
                 const args =
-                    content.split(
-                        /\s+/
-                    );
+                    content.split(/\s+/);
 
                 const targetMember =
                     message.mentions.members.first();
@@ -2111,9 +2078,7 @@ client.on(
                         embeds: [
 
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
 
                                 .setDescription(
                                     '❌ الاستخدام الصحيح: `تحويل @منشن المبلغ` أو `تحويل @منشن نص` أو `تحويل @منشن كامل`'
@@ -2132,9 +2097,7 @@ client.on(
                         embeds: [
 
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
 
                                 .setDescription(
                                     '❌ لا يمكنك التحويل لنفسك!'
@@ -2186,9 +2149,7 @@ client.on(
                         embeds: [
 
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
 
                                 .setDescription(
                                     '❌ يرجى كتابة مبلغ صالح.'
@@ -2207,9 +2168,7 @@ client.on(
                         embeds: [
 
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
 
                                 .setDescription(
                                     '❌ ليس لديك رصيد كافٍ لإتمام عملية التحويل.'
@@ -2263,8 +2222,7 @@ client.on(
 
                         amount,
 
-                        code:
-                            '',
+                        code: '',
 
                         botMsg:
                             sentMsg
@@ -2282,24 +2240,18 @@ client.on(
                 content === 'توب' ||
                 content === 'التوب' ||
                 content.toLowerCase() === 'top' ||
-                /^توب\s+[1-5]$/i.test(
-                    content
-                )
+                /^توب\s+[1-5]$/i.test(content)
             ) {
 
                 let page = 1;
 
                 if (
-                    content.startsWith(
-                        'توب '
-                    )
+                    content.startsWith('توب ')
                 ) {
 
                     page =
                         parseInt(
-                            content.split(
-                                /\s+/
-                            )[1]
+                            content.split(/\s+/)[1]
                         );
                 }
 
@@ -2313,9 +2265,7 @@ client.on(
                         embeds: [
 
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
 
                                 .setDescription(
                                     '❌ صفحات التوب من 1 إلى 5 فقط.'
@@ -2348,8 +2298,7 @@ client.on(
                 const start =
                     (
                         page - 1
-                    ) *
-                    10;
+                    ) * 10;
 
                 const pageUsers =
                     sortedUsers.slice(
@@ -2372,10 +2321,7 @@ client.on(
                     }
                 );
 
-                if (
-                    !description
-                ) {
-
+                if (!description) {
                     description =
                         `الصفحة **${page}** فارغة.`;
                 }
@@ -2385,9 +2331,7 @@ client.on(
                     embeds: [
 
                         new EmbedBuilder()
-                            .setColor(
-                                '#D4AC0D'
-                            )
+                            .setColor('#D4AC0D')
 
                             .setTitle(
                                 `قائمة التوب — الصفحة ${page}`
@@ -2412,9 +2356,6 @@ client.on(
 
 /* =========================================================
    RANK COMMAND
-   رانك
-   r
-   R
 ========================================================= */
 
 client.on(
@@ -2423,15 +2364,11 @@ client.on(
 
         try {
 
-            if (
-                message.author.bot
-            ) {
+            if (message.author.bot) {
                 return;
             }
 
-            if (
-                !message.guild
-            ) {
+            if (!message.guild) {
                 return;
             }
 
@@ -2446,9 +2383,7 @@ client.on(
                 content.startsWith('r ') ||
                 content.startsWith('R ');
 
-            if (
-                !isRankCommand
-            ) {
+            if (!isRankCommand) {
                 return;
             }
 
@@ -2465,8 +2400,7 @@ client.on(
                 new AttachmentBuilder(
                     image,
                     {
-                        name:
-                            'rank.png'
+                        name: 'rank.png'
                     }
                 );
 
@@ -2488,9 +2422,7 @@ client.on(
                 embeds: [
 
                     new EmbedBuilder()
-                        .setColor(
-                            '#D4AC0D'
-                        )
+                        .setColor('#D4AC0D')
 
                         .setDescription(
                             '❌ تعذر إنشاء صورة الرانك حالياً.'
@@ -2511,15 +2443,11 @@ client.on(
 
         try {
 
-            if (
-                message.author.bot
-            ) {
+            if (message.author.bot) {
                 return;
             }
 
-            if (
-                !message.guild
-            ) {
+            if (!message.guild) {
                 return;
             }
 
@@ -2545,46 +2473,31 @@ client.on(
                     message.author.id
                 );
 
-            if (
-                !pendingTransfers.has(
-                    key
-                )
-            ) {
+            if (!pendingTransfers.has(key)) {
                 return;
             }
 
             const transfer =
-                pendingTransfers.get(
-                    key
-                );
+                pendingTransfers.get(key);
 
             if (
                 !transfer.code ||
-                content !==
-                    transfer.code
+                content !== transfer.code
             ) {
                 return;
             }
 
-            pendingTransfers.delete(
-                key
-            );
+            pendingTransfers.delete(key);
 
             await message
                 .delete()
-                .catch(
-                    () => {}
-                );
+                .catch(() => {});
 
-            if (
-                transfer.botMsg
-            ) {
+            if (transfer.botMsg) {
 
                 await transfer.botMsg
                     .delete()
-                    .catch(
-                        () => {}
-                    );
+                    .catch(() => {});
             }
 
             const sender =
@@ -2611,9 +2524,7 @@ client.on(
                     embeds: [
 
                         new EmbedBuilder()
-                            .setColor(
-                                '#D4AC0D'
-                            )
+                            .setColor('#D4AC0D')
 
                             .setDescription(
                                 '❌ ليس لديك رصيد كافٍ لإتمام عملية التحويل.'
@@ -2641,9 +2552,7 @@ client.on(
 
             const receiptEmbed =
                 new EmbedBuilder()
-                    .setColor(
-                        '#D4AC0D'
-                    )
+                    .setColor('#D4AC0D')
 
                     .setTitle(
                         'إيصال تحويل'
@@ -2666,13 +2575,9 @@ client.on(
                         receiptEmbed
                     ]
                 })
-                .catch(
-                    () => {}
-                );
+                .catch(() => {});
 
-            if (
-                targetMember
-            ) {
+            if (targetMember) {
 
                 await targetMember
                     .send({
@@ -2680,9 +2585,7 @@ client.on(
                             receiptEmbed
                         ]
                     })
-                    .catch(
-                        () => {}
-                    );
+                    .catch(() => {});
             }
 
             return message.channel.send({
@@ -2690,9 +2593,7 @@ client.on(
                 embeds: [
 
                     new EmbedBuilder()
-                        .setColor(
-                            '#D4AC0D'
-                        )
+                        .setColor('#D4AC0D')
 
                         .setDescription(
                             `✅ تم التحويل بنجاح بقيمة **${formatAmount(
@@ -2749,11 +2650,6 @@ client.on(
             const now =
                 Date.now();
 
-            /*
-               كان داخل روم صوتي
-               نحسب الوقت السابق
-            */
-
             if (
                 isCountedVoice(
                     oldState.channel,
@@ -2768,14 +2664,9 @@ client.on(
                         now
                     )
                 ) {
-
                     saveDB(db);
                 }
             }
-
-            /*
-               دخل روم صوتي
-            */
 
             if (
                 isCountedVoice(
@@ -2790,10 +2681,6 @@ client.on(
                 saveDB(db);
 
             } else {
-
-                /*
-                   خرج من الروم
-                */
 
                 user.voiceLastTickAt =
                     null;
@@ -2829,17 +2716,14 @@ client.on(
                 interaction.isChatInputCommand()
             ) {
 
-                if (
-                    !interaction.guild
-                ) {
+                if (!interaction.guild) {
 
                     return interaction.reply({
 
                         content:
                             '❌ هذا الأمر يعمل داخل السيرفر فقط.',
 
-                        ephemeral:
-                            true
+                        ephemeral: true
                     });
                 }
 
@@ -2861,8 +2745,7 @@ client.on(
                         content:
                             '❌ هذا الأمر مخصص للإداريين فقط.',
 
-                        ephemeral:
-                            true
+                        ephemeral: true
                     });
                 }
 
@@ -2876,9 +2759,7 @@ client.on(
                     interaction.options
                         .getSubcommand();
 
-                /* =============================================
-                   ENABLE
-                ============================================= */
+                /* ENABLE */
 
                 if (
                     subcommand ===
@@ -2895,9 +2776,7 @@ client.on(
                         embeds: [
 
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
 
                                 .setDescription(
                                     `✅ تم تفعيل نظام العملة في <#${interaction.channel.id}>.\n\n💾 تم حفظ التفعيل للسيرفر.`
@@ -2906,9 +2785,7 @@ client.on(
                     });
                 }
 
-                /* =============================================
-                   DISABLE
-                ============================================= */
+                /* DISABLE */
 
                 if (
                     subcommand ===
@@ -2929,9 +2806,7 @@ client.on(
                         embeds: [
 
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
 
                                 .setDescription(
                                     '✅ تم تعطيل نظام العملة في هذا السيرفر.'
@@ -2954,24 +2829,19 @@ client.on(
                 )
             ) {
 
-                if (
-                    !interaction.guild
-                ) {
+                if (!interaction.guild) {
 
                     return interaction.reply({
 
                         content:
                             '❌ هذا الزر داخل السيرفر فقط.',
 
-                        ephemeral:
-                            true
+                        ephemeral: true
                     });
                 }
 
                 const parts =
-                    interaction.customId.split(
-                        '_'
-                    );
+                    interaction.customId.split('_');
 
                 const senderId =
                     parts[2];
@@ -2980,9 +2850,7 @@ client.on(
                     parts[3];
 
                 const amount =
-                    Number(
-                        parts[4]
-                    );
+                    Number(parts[4]);
 
                 if (
                     interaction.user.id !==
@@ -2994,8 +2862,7 @@ client.on(
                         content:
                             '❌ هذا الزر ليس مخصصاً لك.',
 
-                        ephemeral:
-                            true
+                        ephemeral: true
                     });
                 }
 
@@ -3006,21 +2873,16 @@ client.on(
                     );
 
                 const transfer =
-                    pendingTransfers.get(
-                        key
-                    );
+                    pendingTransfers.get(key);
 
-                if (
-                    !transfer
-                ) {
+                if (!transfer) {
 
                     return interaction.reply({
 
                         content:
                             '❌ عملية التحويل انتهت أو غير موجودة.',
 
-                        ephemeral:
-                            true
+                        ephemeral: true
                     });
                 }
 
@@ -3045,8 +2907,7 @@ client.on(
                         content:
                             '❌ لم يعد لديك رصيد كافٍ.',
 
-                        ephemeral:
-                            true
+                        ephemeral: true
                     });
                 }
 
@@ -3060,8 +2921,7 @@ client.on(
 
                     code +=
                         Math.floor(
-                            Math.random() *
-                            10
+                            Math.random() * 10
                         );
                 }
 
@@ -3078,8 +2938,7 @@ client.on(
                     content:
                         `🔐 رمز التحقق الخاص بالتحويل:\n\n**${code}**\n\nقم بإرسال الرمز في روم العملات لتأكيد العملية.`,
 
-                    ephemeral:
-                        true
+                    ephemeral: true
                 });
             }
 
@@ -3101,13 +2960,9 @@ client.on(
                         content:
                             '❌ حدث خطأ أثناء تنفيذ العملية.',
 
-                        ephemeral:
-                            true
+                        ephemeral: true
                     })
-
-                    .catch(
-                        () => {}
-                    );
+                    .catch(() => {});
             }
         }
     }
