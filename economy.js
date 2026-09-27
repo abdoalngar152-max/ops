@@ -23,9 +23,17 @@ const TOKEN = String(process.env.DISCORD_TOKEN || '').trim();
 
 const PREMIUM_ROLE_ID = '1544858160982917261';
 
-const DB_FILE = path.join(__dirname, 'economy.json');
-const DB_BACKUP_FILE = path.join(__dirname, 'economy.backup.json');
-const DB_TEMP_FILE = path.join(__dirname, 'economy.tmp.json');
+/* =========================================================
+   RAILWAY VOLUME DATABASE
+========================================================= */
+
+const DATA_DIR = '/data';
+
+fs.mkdirSync(DATA_DIR, { recursive: true });
+
+const DB_FILE = path.join(DATA_DIR, 'economy.json');
+const DB_BACKUP_FILE = path.join(DATA_DIR, 'economy.backup.json');
+const DB_TEMP_FILE = path.join(DATA_DIR, 'economy.tmp.json');
 
 const DEFAULT_CURRENCY_NAME = '𝐎𝐏𝐬';
 
@@ -183,16 +191,12 @@ function loadDB() {
 
         try {
             if (fs.existsSync(DB_BACKUP_FILE)) {
-                const backupRaw =
-                    fs.readFileSync(
-                        DB_BACKUP_FILE,
-                        'utf8'
-                    );
+                const backupRaw = fs.readFileSync(
+                    DB_BACKUP_FILE,
+                    'utf8'
+                );
 
-                const backup =
-                    JSON.parse(
-                        backupRaw
-                    );
+                const backup = JSON.parse(backupRaw);
 
                 if (
                     backup &&
@@ -251,12 +255,11 @@ function saveDB(data) {
 
         data.version = 3;
 
-        const json =
-            JSON.stringify(
-                data,
-                null,
-                2
-            );
+        const json = JSON.stringify(
+            data,
+            null,
+            2
+        );
 
         fs.writeFileSync(
             DB_TEMP_FILE,
@@ -286,9 +289,7 @@ function saveDB(data) {
 
         try {
             if (fs.existsSync(DB_TEMP_FILE)) {
-                fs.unlinkSync(
-                    DB_TEMP_FILE
-                );
+                fs.unlinkSync(DB_TEMP_FILE);
             }
         } catch {}
 
@@ -318,12 +319,10 @@ function ensureGuild(db, guildId) {
         typeof db.guilds[guildId] !== 'object' ||
         Array.isArray(db.guilds[guildId])
     ) {
-        db.guilds[guildId] =
-            createEmptyGuild();
+        db.guilds[guildId] = createEmptyGuild();
     }
 
-    const guildData =
-        db.guilds[guildId];
+    const guildData = db.guilds[guildId];
 
     if (
         !Object.prototype.hasOwnProperty.call(
@@ -346,27 +345,23 @@ function ensureGuild(db, guildId) {
 }
 
 function ensureUser(db, guildId, userId) {
-    const guildData =
-        ensureGuild(
-            db,
-            guildId
-        );
+    const guildData = ensureGuild(
+        db,
+        guildId
+    );
 
     if (
         !guildData.users[userId] ||
         typeof guildData.users[userId] !== 'object' ||
         Array.isArray(guildData.users[userId])
     ) {
-        guildData.users[userId] =
-            createEmptyUser();
+        guildData.users[userId] = createEmptyUser();
     }
 
-    const user =
-        guildData.users[userId];
+    const user = guildData.users[userId];
 
     if (typeof user.balance !== 'number') {
-        user.balance =
-            Number(user.balance) || 0;
+        user.balance = Number(user.balance) || 0;
     }
 
     if (!Number.isFinite(user.balance)) {
@@ -378,8 +373,7 @@ function ensureUser(db, guildId, userId) {
     }
 
     if (typeof user.lastDaily !== 'number') {
-        user.lastDaily =
-            Number(user.lastDaily) || 0;
+        user.lastDaily = Number(user.lastDaily) || 0;
     }
 
     if (!Number.isFinite(user.lastDaily)) {
@@ -404,24 +398,19 @@ function getUser(db, guildId, userId) {
 function parseAmount(value) {
     if (!value) return NaN;
 
-    const text =
-        String(value)
-            .trim()
-            .toLowerCase()
-            .replace(/,/g, '');
+    const text = String(value)
+        .trim()
+        .toLowerCase()
+        .replace(/,/g, '');
 
-    const match =
-        text.match(
-            /^(\d+(?:\.\d+)?)([kmbt])?$/
-        );
+    const match = text.match(
+        /^(\d+(?:\.\d+)?)([kmbt])?$/
+    );
 
     if (!match) return NaN;
 
-    const number =
-        Number(match[1]);
-
-    const suffix =
-        match[2] || '';
+    const number = Number(match[1]);
+    const suffix = match[2] || '';
 
     const multipliers = {
         k: 1000,
@@ -431,10 +420,7 @@ function parseAmount(value) {
     };
 
     const amount =
-        number *
-        (
-            multipliers[suffix] || 1
-        );
+        number * (multipliers[suffix] || 1);
 
     if (!Number.isFinite(amount)) {
         return NaN;
@@ -444,8 +430,7 @@ function parseAmount(value) {
 }
 
 function formatAmount(amount) {
-    amount =
-        Number(amount) || 0;
+    amount = Number(amount) || 0;
 
     if (amount < 1000) {
         return String(amount);
@@ -472,9 +457,7 @@ function formatAmount(amount) {
 
     for (const unit of units) {
         if (amount >= unit.value) {
-            const result =
-                amount /
-                unit.value;
+            const result = amount / unit.value;
 
             if (Number.isInteger(result)) {
                 return `${result}${unit.suffix}`;
@@ -498,14 +481,12 @@ function isEconomyChannel(message) {
         return false;
     }
 
-    const db =
-        loadDB();
+    const db = loadDB();
 
-    const guildData =
-        ensureGuild(
-            db,
-            message.guild.id
-        );
+    const guildData = ensureGuild(
+        db,
+        message.guild.id
+    );
 
     return Boolean(
         guildData.economyChannelId &&
@@ -523,8 +504,7 @@ function isAdmin(member) {
     );
 }
 
-const pendingTransfers =
-    new Map();
+const pendingTransfers = new Map();
 
 function transferKey(
     guildId,
@@ -533,20 +513,15 @@ function transferKey(
     return `${guildId}:${userId}`;
 }
 
-function cleanupPendingForGuild(
-    guildId
-) {
+function cleanupPendingForGuild(guildId) {
     for (
         const [key, value]
         of pendingTransfers.entries()
     ) {
         if (
-            value.guildId ===
-            guildId
+            value.guildId === guildId
         ) {
-            pendingTransfers.delete(
-                key
-            );
+            pendingTransfers.delete(key);
         }
     }
 }
@@ -579,12 +554,9 @@ const slashCommands = [
 
 async function registerSlashCommands() {
     try {
-        const rest =
-            new REST({
-                version: '10'
-            }).setToken(
-                TOKEN
-            );
+        const rest = new REST({
+            version: '10'
+        }).setToken(TOKEN);
 
         await rest.put(
             Routes.applicationCommands(
@@ -622,11 +594,9 @@ async function registerSlashCommands() {
                 client.user.id
             ),
             {
-                body:
-                    slashCommands.map(
-                        command =>
-                            command.toJSON()
-                    )
+                body: slashCommands.map(
+                    command => command.toJSON()
+                )
             }
         );
 
@@ -661,8 +631,7 @@ client.once(
             '======================================'
         );
 
-        const db =
-            loadDB();
+        const db = loadDB();
 
         for (
             const guild
@@ -693,17 +662,14 @@ client.once(
                     {
                         name: 'customstatus',
                         type: 4,
-                        state:
-                            statuses[index]
+                        state: statuses[index]
                     }
                 ],
                 status: 'online'
             });
 
             index =
-                (
-                    index + 1
-                ) %
+                (index + 1) %
                 statuses.length;
         };
 
@@ -724,8 +690,7 @@ client.on(
     'guildCreate',
     guild => {
         try {
-            const db =
-                loadDB();
+            const db = loadDB();
 
             ensureGuild(
                 db,
@@ -766,14 +731,12 @@ client.on(
                 return;
             }
 
-            const db =
-                loadDB();
+            const db = loadDB();
 
-            const guildData =
-                ensureGuild(
-                    db,
-                    message.guild.id
-                );
+            const guildData = ensureGuild(
+                db,
+                message.guild.id
+            );
 
             /* =====================================================
                تفعيل روم
@@ -895,10 +858,8 @@ client.on(
             ===================================================== */
 
             if (
-                content ===
-                    'مكافاة' ||
-                content ===
-                    'مكافأة'
+                content === 'مكافاة' ||
+                content === 'مكافأة'
             ) {
                 const accountAge =
                     Date.now() -
@@ -952,11 +913,11 @@ client.on(
                     const hours =
                         Math.floor(
                             remaining /
-                                (
-                                    60 *
-                                    60 *
-                                    1000
-                                )
+                            (
+                                60 *
+                                60 *
+                                1000
+                            )
                         );
 
                     const minutes =
@@ -969,10 +930,10 @@ client.on(
                                     1000
                                 )
                             ) /
-                                (
-                                    60 *
-                                    1000
-                                )
+                            (
+                                60 *
+                                1000
+                            )
                         );
 
                     return message.channel.send({
@@ -997,11 +958,11 @@ client.on(
                     isPremium
                         ? Math.floor(
                             Math.random() *
-                                2001
+                            2001
                         ) + 3000
                         : Math.floor(
                             Math.random() *
-                                301
+                            301
                         ) + 1700;
 
                 user.balance +=
@@ -1020,12 +981,8 @@ client.on(
                             )
                             .setDescription(
                                 isPremium
-                                    ? `🎁 **مكافأة عضو مميز**\n\nلقد حصلت على **${formatAmount(
-                                        randomAmount
-                                    )} 𝐎𝐏𝐬**`
-                                    : `🎁 لقد حصلت على **${formatAmount(
-                                        randomAmount
-                                    )} 𝐎𝐏𝐬** coin`
+                                    ? `🎁 **مكافأة عضو مميز**\n\nلقد حصلت على **${formatAmount(randomAmount)} 𝐎𝐏𝐬**`
+                                    : `🎁 لقد حصلت على **${formatAmount(randomAmount)} 𝐎𝐏𝐬** coin`
                             )
                     ]
                 });
@@ -1036,21 +993,12 @@ client.on(
             ===================================================== */
 
             if (
-                content.toLowerCase() ===
-                    '𝐎𝐏𝐬' ||
-                content.toLowerCase() ===
-                    'ops' ||
-                content ===
-                    'رصيد' ||
-                content.startsWith(
-                    'رصيد '
-                ) ||
-                content.toLowerCase().startsWith(
-                    '𝐎𝐏𝐬 '
-                ) ||
-                content.toLowerCase().startsWith(
-                    'ops '
-                )
+                content.toLowerCase() === '𝐎𝐏𝐬' ||
+                content.toLowerCase() === 'ops' ||
+                content === 'رصيد' ||
+                content.startsWith('رصيد ') ||
+                content.toLowerCase().startsWith('𝐎𝐏𝐬 ') ||
+                content.toLowerCase().startsWith('ops ')
             ) {
                 const targetMember =
                     message.mentions.members.first() ||
@@ -1072,12 +1020,8 @@ client.on(
                             .setDescription(
                                 targetMember.id ===
                                     message.author.id
-                                    ? `رصيدك الحالي : ${formatAmount(
-                                        targetUser.balance
-                                    )} 𝐎𝐏𝐬`
-                                    : `رصيد العضو ${targetMember} الحالي : ${formatAmount(
-                                        targetUser.balance
-                                    )} 𝐎𝐏𝐬`
+                                    ? `رصيدك الحالي : ${formatAmount(targetUser.balance)} 𝐎𝐏𝐬`
+                                    : `رصيد العضو ${targetMember} الحالي : ${formatAmount(targetUser.balance)} 𝐎𝐏𝐬`
                             )
                     ]
                 });
@@ -1152,6 +1096,7 @@ client.on(
                 ) {
                     amount =
                         currentBalance;
+
                 } else if (
                     argValue ===
                     'نص'
@@ -1160,6 +1105,7 @@ client.on(
                         Math.floor(
                             currentBalance / 2
                         );
+
                 } else {
                     amount =
                         parseAmount(
@@ -1250,12 +1196,9 @@ client.on(
             ===================================================== */
 
             if (
-                content ===
-                    'توب' ||
-                content ===
-                    'التوب' ||
-                content.toLowerCase() ===
-                    'top' ||
+                content === 'توب' ||
+                content === 'التوب' ||
+                content.toLowerCase() === 'top' ||
                 /^توب\s+[1-5]$/i.test(
                     content
                 )
@@ -1322,8 +1265,7 @@ client.on(
                         start + 10
                     );
 
-                let description =
-                    '';
+                let description = '';
 
                 pageUsers.forEach(
                     (
@@ -1331,9 +1273,7 @@ client.on(
                         index
                     ) => {
                         description +=
-                            `#${start + index + 1} <@${uId}> — **${formatAmount(
-                                data.balance
-                            )} 𝐎𝐏𝐬**\n`;
+                            `#${start + index + 1} <@${uId}> — **${formatAmount(data.balance)} 𝐎𝐏𝐬**\n`;
                     }
                 );
 
@@ -1586,8 +1526,7 @@ client.on(
                 ) {
                     code +=
                         Math.floor(
-                            Math.random() *
-                                10
+                            Math.random() * 10
                         );
                 }
 
@@ -1760,9 +1699,7 @@ client.on(
                                     name:
                                         'المبلغ',
                                     value:
-                                        `\`\`\`fix\n${formatAmount(
-                                            transfer.amount
-                                        )} 𝐎𝐏𝐬\n\`\`\``
+                                        `\`\`\`fix\n${formatAmount(transfer.amount)} 𝐎𝐏𝐬\n\`\`\``
                                 },
                                 {
                                     name:
@@ -1810,9 +1747,7 @@ client.on(
                                     '#D4AC0D'
                                 )
                                 .setDescription(
-                                    `✅ تم التحويل بنجاح بقيمة **${formatAmount(
-                                        transfer.amount
-                                    )} 𝐎𝐏𝐬**.`
+                                    `✅ تم التحويل بنجاح بقيمة **${formatAmount(transfer.amount)} 𝐎𝐏𝐬**.`
                                 )
                         ]
                     });
@@ -1903,9 +1838,7 @@ process.on(
     'SIGINT',
     () => {
         gracefulSave();
-
         client.destroy();
-
         process.exit(0);
     }
 );
@@ -1918,9 +1851,7 @@ process.on(
     'SIGTERM',
     () => {
         gracefulSave();
-
         client.destroy();
-
         process.exit(0);
     }
 );
