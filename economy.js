@@ -1047,958 +1047,607 @@ function progressBar(
    CREATE RANK IMAGE
 ========================================================= */
 
-async function createRankCard(
-    member
-) {
+async function createRankCard(member) {
 
-    const user =
-        await member.user.fetch(
-            true
-        ).catch(
-            () => member.user
-        );
+    const user = await member.user.fetch(true).catch(() => member.user);
 
-    const userData =
-        getUser(
-            db,
-            member.guild.id,
-            user.id
-        );
+    const userData = getUser(
+        db,
+        member.guild.id,
+        user.id
+    );
 
-    if (
-        isCountedVoice(
-            member.voice.channel,
-            member.guild
-        )
-    ) {
-
-        if (
-            awardVoiceXP(
-                member.guild.id,
-                user.id
-            )
-        ) {
-
+    if (isCountedVoice(member.voice.channel, member.guild)) {
+        if (awardVoiceXP(member.guild.id, user.id)) {
             saveDB(db);
         }
     }
 
-    const textLevel =
-        levelInfo(
-            userData.textXP
-        );
+    const textLevel = levelInfo(userData.textXP);
+    const voiceLevel = levelInfo(userData.voiceXP);
 
-    const voiceLevel =
-        levelInfo(
-            userData.voiceXP
-        );
+    const avatarURL = user.displayAvatarURL({
+        extension: 'png',
+        size: 512
+    });
 
-    /* =====================================================
-       AVATAR
-    ===================================================== */
+    const avatar = await imageToPNG(
+        avatarURL,
+        360,
+        360
+    );
 
-    const avatarURL =
-        user.displayAvatarURL({
-            extension: 'png',
-            size: 512
-        });
+    const avatarData = dataURI(avatar);
 
-    const avatar =
-        await imageToPNG(
-            avatarURL,
-            280,
-            280
-        );
+    const voiceWidth = Math.max(
+        8,
+        Math.round(496 * (voiceLevel.percent / 100))
+    );
 
-    /* =====================================================
-       BANNER
-    ===================================================== */
-
-    const bannerURL =
-        user.bannerURL({
-            extension: 'png',
-            size: 1024
-        }) ||
-        member.guild.bannerURL({
-            extension: 'png',
-            size: 1024
-        });
-
-    const banner =
-        await imageToPNG(
-            bannerURL,
-            1200,
-            310
-        );
-
-    const avatarData =
-        dataURI(
-            avatar
-        );
-
-    const bannerData =
-        dataURI(
-            banner
-        );
-
-    /* =====================================================
-       PREMIUM LUXURY SVG
-    ===================================================== */
+    const textWidth = Math.max(
+        8,
+        Math.round(496 * (textLevel.percent / 100))
+    );
 
     const svg = `
 <svg
-    width="1200"
-    height="920"
-    viewBox="0 0 1200 920"
+    width="1000"
+    height="1000"
+    viewBox="0 0 1000 1000"
     xmlns="http://www.w3.org/2000/svg"
 >
 
     <defs>
 
-        <!-- Main background -->
-        <linearGradient
-            id="bg"
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="1"
-        >
-            <stop
-                offset="0%"
-                stop-color="#050608"
-            />
-
-            <stop
-                offset="48%"
-                stop-color="#0c0e13"
-            />
-
-            <stop
-                offset="100%"
-                stop-color="#030405"
-            />
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#07080b"/>
+            <stop offset="50%" stop-color="#12151c"/>
+            <stop offset="100%" stop-color="#050609"/>
         </linearGradient>
 
-        <!-- Banner overlay -->
-        <linearGradient
-            id="bannerOverlay"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-        >
-            <stop
-                offset="0%"
-                stop-color="#050608"
-                stop-opacity="0.15"
-            />
-
-            <stop
-                offset="55%"
-                stop-color="#050608"
-                stop-opacity="0.42"
-            />
-
-            <stop
-                offset="100%"
-                stop-color="#050608"
-                stop-opacity="0.96"
-            />
+        <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#805b12"/>
+            <stop offset="35%" stop-color="#d9a936"/>
+            <stop offset="55%" stop-color="#ffe28a"/>
+            <stop offset="75%" stop-color="#d3a12d"/>
+            <stop offset="100%" stop-color="#76500d"/>
         </linearGradient>
 
-        <!-- Gold -->
-        <linearGradient
-            id="gold"
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="0"
-        >
-            <stop
-                offset="0%"
-                stop-color="#8d6819"
-            />
-
-            <stop
-                offset="45%"
-                stop-color="#f0ca63"
-            />
-
-            <stop
-                offset="70%"
-                stop-color="#d6a936"
-            />
-
-            <stop
-                offset="100%"
-                stop-color="#76530f"
-            />
+        <linearGradient id="voiceBar" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#245f91"/>
+            <stop offset="65%" stop-color="#39709e"/>
+            <stop offset="100%" stop-color="#bd921b"/>
         </linearGradient>
 
-        <!-- Gold vertical -->
-        <linearGradient
-            id="goldVertical"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-        >
-            <stop
-                offset="0%"
-                stop-color="#f4d276"
-            />
-
-            <stop
-                offset="100%"
-                stop-color="#9b711c"
-            />
+        <linearGradient id="textBar" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#245f91"/>
+            <stop offset="65%" stop-color="#39709e"/>
+            <stop offset="100%" stop-color="#bd921b"/>
         </linearGradient>
 
-        <!-- Panel -->
-        <linearGradient
-            id="panel"
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="1"
-        >
-            <stop
-                offset="0%"
-                stop-color="#15181e"
-            />
+        <pattern id="dots" width="42" height="42" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1.2" fill="#ffffff" opacity="0.035"/>
+        </pattern>
 
-            <stop
-                offset="100%"
-                stop-color="#0b0d11"
-            />
-        </linearGradient>
-
-        <!-- Gold glow -->
-        <filter
-            id="goldGlow"
-            x="-50%"
-            y="-50%"
-            width="200%"
-            height="200%"
-        >
-            <feGaussianBlur
-                stdDeviation="7"
-                result="blur"
-            />
-
-            <feMerge>
-                <feMergeNode
-                    in="blur"
-                />
-
-                <feMergeNode
-                    in="SourceGraphic"
-                />
-            </feMerge>
-        </filter>
-
-        <!-- Soft shadow -->
-        <filter
-            id="shadow"
-            x="-30%"
-            y="-30%"
-            width="160%"
-            height="160%"
-        >
+        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
             <feDropShadow
                 dx="0"
-                dy="10"
+                dy="12"
                 stdDeviation="18"
                 flood-color="#000000"
-                flood-opacity="0.55"
+                flood-opacity="0.7"
             />
         </filter>
 
-        <!-- Banner -->
-        <clipPath
-            id="bannerClip"
-        >
-            <rect
-                x="34"
-                y="34"
-                width="1132"
-                height="300"
-                rx="30"
-            />
+        <clipPath id="avatarClip">
+            <circle cx="500" cy="205" r="142"/>
         </clipPath>
-
-        <!-- Avatar -->
-        <clipPath
-            id="avatarClip"
-        >
-            <circle
-                cx="165"
-                cy="365"
-                r="113"
-            />
-        </clipPath>
-
-        <!-- Subtle pattern -->
-        <pattern
-            id="pattern"
-            width="70"
-            height="70"
-            patternUnits="userSpaceOnUse"
-        >
-            <circle
-                cx="2"
-                cy="2"
-                r="1"
-                fill="#ffffff"
-                opacity="0.035"
-            />
-        </pattern>
 
     </defs>
 
-    <!-- =================================================
-         BACKGROUND
-    ================================================== -->
+    <!-- BACKGROUND -->
 
     <rect
-        width="1200"
-        height="920"
+        width="1000"
+        height="1000"
+        rx="34"
         fill="url(#bg)"
     />
 
     <rect
-        width="1200"
-        height="920"
-        fill="url(#pattern)"
-    />
-
-    <!-- Outer frame -->
-
-    <rect
-        x="18"
-        y="18"
-        width="1164"
-        height="884"
-        rx="38"
-        fill="none"
-        stroke="#242932"
-        stroke-width="2"
-    />
-
-    <!-- Small gold accent -->
-
-    <rect
-        x="72"
-        y="18"
-        width="190"
-        height="2"
-        fill="url(#gold)"
-        opacity="0.8"
-    />
-
-    <rect
-        x="938"
-        y="900"
-        width="190"
-        height="2"
-        fill="url(#gold)"
-        opacity="0.8"
-    />
-
-    <!-- =================================================
-         BANNER
-    ================================================== -->
-
-    <rect
-        x="34"
-        y="34"
-        width="1132"
-        height="300"
-        rx="30"
-        fill="#0b0d11"
-        stroke="#2a2d34"
-        stroke-width="2"
-        filter="url(#shadow)"
-    />
-
-    ${
-        bannerData
-        ? `
-            <g clip-path="url(#bannerClip)">
-                <image
-                    href="${bannerData}"
-                    x="34"
-                    y="34"
-                    width="1132"
-                    height="300"
-                    preserveAspectRatio="xMidYMid slice"
-                />
-
-                <rect
-                    x="34"
-                    y="34"
-                    width="1132"
-                    height="300"
-                    fill="url(#bannerOverlay)"
-                />
-            </g>
-        `
-        : `
-            <rect
-                x="34"
-                y="34"
-                width="1132"
-                height="300"
-                rx="30"
-                fill="#0d1016"
-            />
-
-            <rect
-                x="34"
-                y="34"
-                width="1132"
-                height="300"
-                rx="30"
-                fill="url(#bannerOverlay)"
-            />
-        `
-    }
-
-    <!-- Banner border -->
-
-    <rect
-        x="34"
-        y="34"
-        width="1132"
-        height="300"
-        rx="30"
-        fill="none"
-        stroke="#363a43"
-        stroke-width="2"
-    />
-
-    <!-- Gold line -->
-
-    <rect
-        x="100"
-        y="326"
         width="1000"
-        height="2"
-        rx="1"
-        fill="url(#gold)"
-        opacity="0.75"
+        height="1000"
+        rx="34"
+        fill="url(#dots)"
     />
-
-    <!-- OPS badge -->
 
     <rect
-        x="80"
-        y="70"
-        width="112"
-        height="38"
-        rx="19"
-        fill="#050608"
-        fill-opacity="0.68"
-        stroke="#d3a63b"
-        stroke-opacity="0.6"
+        x="17"
+        y="17"
+        width="966"
+        height="966"
+        rx="28"
+        fill="none"
+        stroke="#272c35"
+        stroke-width="2"
     />
 
-    <text
-        x="136"
-        y="96"
-        text-anchor="middle"
-        fill="#e5bc55"
-        font-size="16"
-        font-family="Arial, sans-serif"
-        font-weight="700"
-        letter-spacing="4"
-    >
-        OPS
-    </text>
+    <path
+        d="M70 18 H310"
+        stroke="url(#gold)"
+        stroke-width="3"
+    />
 
-    <!-- Banner username -->
+    <path
+        d="M690 982 H930"
+        stroke="url(#gold)"
+        stroke-width="3"
+    />
 
-    <text
-        x="600"
-        y="178"
-        text-anchor="middle"
-        fill="#ffffff"
-        font-size="47"
-        font-family="Arial, sans-serif"
-        font-weight="700"
-    >
-        ${escapeXML(user.username)}
-    </text>
-
-    <text
-        x="600"
-        y="216"
-        text-anchor="middle"
-        fill="#d5d8de"
-        opacity="0.8"
-        font-size="17"
-        font-family="Arial, sans-serif"
-        letter-spacing="5"
-    >
-        RANK PROFILE
-    </text>
-
-    <!-- =================================================
-         PROFILE AREA
-    ================================================== -->
-
-    <!-- Avatar outer shadow -->
+    <!-- AVATAR -->
 
     <circle
-        cx="165"
-        cy="365"
-        r="130"
+        cx="500"
+        cy="205"
+        r="164"
         fill="#000000"
-        opacity="0.5"
+        opacity="0.65"
         filter="url(#shadow)"
     />
 
-    <!-- Avatar gold outer -->
-
     <circle
-        cx="165"
-        cy="365"
-        r="128"
-        fill="#080a0d"
+        cx="500"
+        cy="205"
+        r="158"
+        fill="#090b0f"
         stroke="url(#gold)"
-        stroke-width="4"
-    />
-
-    <!-- Avatar blue/gold secondary ring -->
-
-    <circle
-        cx="165"
-        cy="365"
-        r="119"
-        fill="none"
-        stroke="#555b65"
-        stroke-width="2"
-        opacity="0.75"
+        stroke-width="5"
     />
 
     ${
         avatarData
-        ? `
-            <g clip-path="url(#avatarClip)">
-                <image
-                    href="${avatarData}"
-                    x="52"
-                    y="252"
-                    width="226"
-                    height="226"
-                    preserveAspectRatio="xMidYMid slice"
+            ? `
+                <g clip-path="url(#avatarClip)">
+                    <image
+                        href="${avatarData}"
+                        x="358"
+                        y="63"
+                        width="284"
+                        height="284"
+                        preserveAspectRatio="xMidYMid slice"
+                    />
+                </g>
+            `
+            : `
+                <circle
+                    cx="500"
+                    cy="205"
+                    r="142"
+                    fill="#171a20"
                 />
-            </g>
-        `
-        : `
-            <circle
-                cx="165"
-                cy="365"
-                r="113"
-                fill="#171a20"
-            />
-        `
+            `
     }
 
-    <!-- Avatar inner border -->
-
     <circle
-        cx="165"
-        cy="365"
-        r="113"
+        cx="500"
+        cy="205"
+        r="142"
         fill="none"
         stroke="#ffffff"
-        stroke-opacity="0.08"
+        stroke-opacity="0.10"
         stroke-width="2"
     />
 
-    <!-- Online status -->
+    <!-- CROWN -->
+
+    <path
+        d="M447 54 L463 29 L500 51 L537 29 L553 54 L544 74 H456 Z"
+        fill="url(#gold)"
+    />
+
+    <circle cx="463" cy="29" r="5" fill="#ffe39a"/>
+    <circle cx="500" cy="51" r="5" fill="#ffe39a"/>
+    <circle cx="537" cy="29" r="5" fill="#ffe39a"/>
+
+    <!-- ONLINE -->
 
     <circle
-        cx="252"
-        cy="452"
-        r="18"
+        cx="614"
+        cy="318"
+        r="22"
         fill="#090b0f"
+        stroke="#050608"
+        stroke-width="5"
     />
 
     <circle
-        cx="252"
-        cy="452"
-        r="11"
-        fill="#d6ad43"
+        cx="614"
+        cy="318"
+        r="13"
+        fill="#d5a536"
     />
 
-    <!-- Identity -->
+    <!-- USERNAME -->
 
     <text
-        x="335"
-        y="360"
+        x="500"
+        y="415"
+        text-anchor="middle"
         fill="#ffffff"
-        font-size="39"
+        font-size="48"
         font-family="Arial, sans-serif"
         font-weight="700"
     >
         ${escapeXML(user.username)}
     </text>
 
-    <text
-        x="338"
-        y="397"
-        fill="#7f8793"
-        font-size="20"
-        font-family="Arial, sans-serif"
-    >
-        @${escapeXML(user.username)}
-    </text>
-
-    <!-- Divider -->
-
-    <rect
-        x="337"
-        y="421"
-        width="700"
-        height="1"
-        fill="#292d34"
+    <path
+        d="M255 442 H420 M580 442 H745"
+        stroke="url(#gold)"
+        stroke-width="2"
     />
-
-    <!-- Status -->
 
     <circle
-        cx="350"
-        cy="450"
-        r="5"
-        fill="#d7ad43"
+        cx="500"
+        cy="442"
+        r="4"
+        fill="#e3b84d"
     />
 
-    <text
-        x="366"
-        y="457"
-        fill="#aeb4be"
-        font-size="18"
-        font-family="Arial, sans-serif"
-    >
-        متصل الآن
-    </text>
-
-    <!-- Profile rank -->
-
-    <text
-        x="1020"
-        y="457"
-        text-anchor="end"
-        fill="#686f7a"
-        font-size="17"
-        font-family="Arial, sans-serif"
-    >
-        OPS MEMBER
-    </text>
-
-    <!-- =================================================
-         TEXT LEVEL CARD
-    ================================================== -->
+    <!-- VOICE CARD -->
 
     <rect
-        x="42"
-        y="525"
-        width="540"
-        height="250"
-        rx="26"
-        fill="url(#panel)"
-        stroke="#292d34"
+        x="70"
+        y="490"
+        width="860"
+        height="165"
+        rx="25"
+        fill="#090b0f"
+        stroke="#3a414d"
         stroke-width="2"
         filter="url(#shadow)"
     />
 
-    <!-- Gold top -->
-
     <rect
-        x="42"
-        y="525"
-        width="540"
-        height="3"
+        x="70"
+        y="490"
+        width="860"
+        height="4"
         rx="2"
         fill="url(#gold)"
     />
 
-    <!-- Icon -->
-
-    <circle
-        cx="86"
-        cy="576"
-        r="18"
-        fill="#171a20"
-        stroke="#a77d25"
-        stroke-width="1"
-    />
-
-    <text
-        x="86"
-        y="583"
-        text-anchor="middle"
-        fill="#e5bb57"
-        font-size="17"
-        font-family="Arial, sans-serif"
-        font-weight="700"
-    >
-        T
-    </text>
-
-    <text
-        x="118"
-        y="584"
-        fill="#d8dbe0"
-        font-size="21"
-        font-family="Arial, sans-serif"
-        font-weight="700"
-    >
-        المستوى الكتابي
-    </text>
-
-    <!-- Level -->
-
-    <text
-        x="80"
-        y="650"
-        fill="#ffffff"
-        font-size="55"
-        font-family="Arial, sans-serif"
-        font-weight="700"
-    >
-        ${textLevel.level}
-    </text>
-
-    <text
-        x="132"
-        y="649"
-        fill="#8d949e"
-        font-size="17"
-        font-family="Arial, sans-serif"
-        letter-spacing="2"
-    >
-        LEVEL
-    </text>
-
-    <!-- XP -->
-
-    <text
-        x="500"
-        y="649"
-        text-anchor="end"
-        fill="#b8bdc5"
-        font-size="18"
-        font-family="Arial, sans-serif"
-    >
-        ${textLevel.currentXP.toLocaleString('en-US')}
-        /
-        ${textLevel.nextXP.toLocaleString('en-US')}
-        XP
-    </text>
-
-    <!-- Progress -->
-
-    <g transform="translate(80 674)">
-        ${progressBar(
-            textLevel.percent,
-            'url(#gold)'
-        )}
-    </g>
-
-    <text
-        x="80"
-        y="730"
-        fill="#737b87"
-        font-size="16"
-        font-family="Arial, sans-serif"
-    >
-        التقدم إلى المستوى التالي
-    </text>
-
-    <text
-        x="500"
-        y="730"
-        text-anchor="end"
-        fill="#d8b04d"
-        font-size="16"
-        font-family="Arial, sans-serif"
-        font-weight="700"
-    >
-        ${textLevel.percent}%
-    </text>
-
-    <!-- =================================================
-         VOICE LEVEL CARD
-    ================================================== -->
+    <!-- Voice level -->
 
     <rect
-        x="618"
-        y="525"
-        width="540"
-        height="250"
-        rx="26"
-        fill="url(#panel)"
-        stroke="#292d34"
+        x="95"
+        y="523"
+        width="105"
+        height="62"
+        rx="15"
+        fill="#11151c"
+        stroke="#a87c21"
         stroke-width="2"
-        filter="url(#shadow)"
-    />
-
-    <!-- Gold top -->
-
-    <rect
-        x="618"
-        y="525"
-        width="540"
-        height="3"
-        rx="2"
-        fill="url(#gold)"
-    />
-
-    <!-- Icon -->
-
-    <circle
-        cx="662"
-        cy="576"
-        r="18"
-        fill="#171a20"
-        stroke="#a77d25"
-        stroke-width="1"
     />
 
     <text
-        x="662"
-        y="583"
+        x="147"
+        y="562"
         text-anchor="middle"
-        fill="#e5bb57"
-        font-size="17"
+        fill="#f4d171"
+        font-size="23"
         font-family="Arial, sans-serif"
         font-weight="700"
     >
-        V
+        Lv.${voiceLevel.level}
     </text>
 
+    <!-- Voice progress -->
+
+    <rect
+        x="220"
+        y="523"
+        width="500"
+        height="62"
+        rx="31"
+        fill="#202832"
+        stroke="#555c67"
+        stroke-width="2"
+    />
+
+    <rect
+        x="222"
+        y="525"
+        width="${voiceWidth}"
+        height="58"
+        rx="29"
+        fill="url(#voiceBar)"
+    />
+
+    <rect
+        x="222"
+        y="525"
+        width="${voiceWidth}"
+        height="10"
+        rx="5"
+        fill="#ffffff"
+        opacity="0.12"
+    />
+
     <text
-        x="694"
-        y="584"
-        fill="#d8dbe0"
+        x="470"
+        y="562"
+        text-anchor="middle"
+        fill="#ffffff"
         font-size="21"
         font-family="Arial, sans-serif"
         font-weight="700"
     >
-        المستوى الصوتي
+        ${voiceLevel.currentXP.toLocaleString('en-US')} / ${voiceLevel.nextXP.toLocaleString('en-US')}
     </text>
 
-    <!-- Level -->
-
     <text
-        x="656"
-        y="650"
+        x="890"
+        y="562"
+        text-anchor="end"
         fill="#ffffff"
-        font-size="55"
+        font-size="14"
         font-family="Arial, sans-serif"
-        font-weight="700"
-    >
-        ${voiceLevel.level}
-    </text>
-
-    <text
-        x="708"
-        y="649"
-        fill="#8d949e"
-        font-size="17"
-        font-family="Arial, sans-serif"
-        letter-spacing="2"
-    >
-        LEVEL
-    </text>
-
-    <!-- XP -->
-
-    <text
-        x="1076"
-        y="649"
-        text-anchor="end"
-        fill="#b8bdc5"
-        font-size="18"
-        font-family="Arial, sans-serif"
-    >
-        ${voiceLevel.currentXP.toLocaleString('en-US')}
-        /
-        ${voiceLevel.nextXP.toLocaleString('en-US')}
-        XP
-    </text>
-
-    <!-- Progress -->
-
-    <g transform="translate(656 674)">
-        ${progressBar(
-            voiceLevel.percent,
-            'url(#goldVertical)'
-        )}
-    </g>
-
-    <text
-        x="656"
-        y="730"
-        fill="#737b87"
-        font-size="16"
-        font-family="Arial, sans-serif"
-    >
-        التقدم إلى المستوى التالي
-    </text>
-
-    <text
-        x="1076"
-        y="730"
-        text-anchor="end"
-        fill="#d8b04d"
-        font-size="16"
-        font-family="Arial, sans-serif"
-        font-weight="700"
+        opacity="0.75"
     >
         ${voiceLevel.percent}%
     </text>
 
-    <!-- =================================================
-         FOOTER
-    ================================================== -->
-
-    <rect
-        x="80"
-        y="823"
-        width="1040"
-        height="1"
-        fill="#272b32"
-    />
+    <!-- MICROPHONE -->
 
     <circle
-        cx="566"
-        cy="858"
-        r="4"
-        fill="#d5a73d"
+        cx="825"
+        cy="554"
+        r="49"
+        fill="#0b0f15"
+        stroke="url(#gold)"
+        stroke-width="3"
+    />
+
+    <rect
+        x="814"
+        y="527"
+        width="22"
+        height="38"
+        rx="11"
+        fill="none"
+        stroke="#f0c95f"
+        stroke-width="5"
+    />
+
+    <path
+        d="M802 550 C802 572 815 584 825 584 C835 584 848 572 848 550"
+        fill="none"
+        stroke="#f0c95f"
+        stroke-width="5"
+        stroke-linecap="round"
+    />
+
+    <path
+        d="M825 584 V596 M812 598 H838"
+        stroke="#f0c95f"
+        stroke-width="5"
+        stroke-linecap="round"
     />
 
     <text
-        x="600"
-        y="864"
+        x="780"
+        y="627"
+        text-anchor="end"
+        fill="#f0c95f"
+        font-size="20"
+        font-family="Arial, sans-serif"
+        font-weight="700"
+    >
+        ترتيب الصوتي
+    </text>
+
+    <text
+        x="110"
+        y="627"
+        fill="#c0c5cd"
+        font-size="17"
+        font-family="Arial, sans-serif"
+    >
+        إجمالي النقاط: ${Number(userData.voiceXP || 0).toLocaleString('en-US')}
+    </text>
+
+    <!-- TEXT CARD -->
+
+    <rect
+        x="70"
+        y="690"
+        width="860"
+        height="165"
+        rx="25"
+        fill="#090b0f"
+        stroke="#3a414d"
+        stroke-width="2"
+        filter="url(#shadow)"
+    />
+
+    <rect
+        x="70"
+        y="690"
+        width="860"
+        height="4"
+        rx="2"
+        fill="url(#gold)"
+    />
+
+    <!-- Text level -->
+
+    <rect
+        x="95"
+        y="723"
+        width="105"
+        height="62"
+        rx="15"
+        fill="#11151c"
+        stroke="#a87c21"
+        stroke-width="2"
+    />
+
+    <text
+        x="147"
+        y="762"
         text-anchor="middle"
-        fill="#777e89"
-        font-size="16"
+        fill="#f4d171"
+        font-size="23"
+        font-family="Arial, sans-serif"
+        font-weight="700"
+    >
+        Lv.${textLevel.level}
+    </text>
+
+    <!-- Text progress -->
+
+    <rect
+        x="220"
+        y="723"
+        width="500"
+        height="62"
+        rx="31"
+        fill="#202832"
+        stroke="#555c67"
+        stroke-width="2"
+    />
+
+    <rect
+        x="222"
+        y="725"
+        width="${textWidth}"
+        height="58"
+        rx="29"
+        fill="url(#textBar)"
+    />
+
+    <rect
+        x="222"
+        y="725"
+        width="${textWidth}"
+        height="10"
+        rx="5"
+        fill="#ffffff"
+        opacity="0.12"
+    />
+
+    <text
+        x="470"
+        y="762"
+        text-anchor="middle"
+        fill="#ffffff"
+        font-size="21"
+        font-family="Arial, sans-serif"
+        font-weight="700"
+    >
+        ${textLevel.currentXP.toLocaleString('en-US')} / ${textLevel.nextXP.toLocaleString('en-US')}
+    </text>
+
+    <text
+        x="890"
+        y="762"
+        text-anchor="end"
+        fill="#ffffff"
+        font-size="14"
+        font-family="Arial, sans-serif"
+        opacity="0.75"
+    >
+        ${textLevel.percent}%
+    </text>
+
+    <!-- CHAT -->
+
+    <circle
+        cx="825"
+        cy="754"
+        r="49"
+        fill="#0b0f15"
+        stroke="url(#gold)"
+        stroke-width="3"
+    />
+
+    <path
+        d="M798 743
+           C798 730 809 721 825 721
+           H838
+           C854 721 865 730 865 743
+           V756
+           C865 769 854 778 838 778
+           H823
+           L811 789
+           V778
+           C803 774 798 766 798 756 Z"
+        fill="none"
+        stroke="#f0c95f"
+        stroke-width="5"
+        stroke-linejoin="round"
+    />
+
+    <circle cx="814" cy="749" r="4" fill="#f0c95f"/>
+    <circle cx="825" cy="749" r="4" fill="#f0c95f"/>
+    <circle cx="836" cy="749" r="4" fill="#f0c95f"/>
+
+    <text
+        x="780"
+        y="827"
+        text-anchor="end"
+        fill="#f0c95f"
+        font-size="20"
+        font-family="Arial, sans-serif"
+        font-weight="700"
+    >
+        ترتيب الكتابي
+    </text>
+
+    <text
+        x="110"
+        y="827"
+        fill="#c0c5cd"
+        font-size="17"
+        font-family="Arial, sans-serif"
+    >
+        إجمالي النقاط: ${Number(userData.textXP || 0).toLocaleString('en-US')}
+    </text>
+
+    <!-- FOOTER -->
+
+    <path
+        d="M270 914 H730"
+        stroke="#292e36"
+        stroke-width="2"
+    />
+
+    <circle
+        cx="500"
+        cy="914"
+        r="34"
+        fill="#090b0f"
+        stroke="url(#gold)"
+        stroke-width="3"
+    />
+
+    <path
+        d="M478 914 L488 893 L500 904 L512 893 L522 914 L518 925 H482 Z"
+        fill="url(#gold)"
+    />
+
+    <text
+        x="500"
+        y="965"
+        text-anchor="middle"
+        fill="#707883"
+        font-size="14"
         font-family="Arial, sans-serif"
         letter-spacing="4"
     >
         OPS SYSTEM
     </text>
-
-    <circle
-        cx="634"
-        cy="858"
-        r="4"
-        fill="#d5a73d"
-    />
 
 </svg>
 `;
