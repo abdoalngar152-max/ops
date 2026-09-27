@@ -6,7 +6,11 @@ import {
     ButtonBuilder,
     ButtonStyle,
     PermissionFlagsBits,
-    SlashCommandBuilder,
+    StringSelectMenuBuilder,
+    ChannelType,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
     REST,
     Routes
 } from 'discord.js';
@@ -21,26 +25,51 @@ const __dirname = path.dirname(__filename);
 
 const TOKEN = String(process.env.DISCORD_TOKEN || '').trim();
 
-const PREMIUM_ROLE_ID = '1544858160982917261';
-
 /* =========================================================
-   RAILWAY VOLUME DATABASE
+   SETTINGS
 ========================================================= */
 
-const DATA_DIR = '/data';
+const PREMIUM_ROLE_ID = '1544858160982917261';
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
+const TICKET_PANEL_CHANNEL_ID = '1553675643936317520';
 
-const DB_FILE = path.join(DATA_DIR, 'economy.json');
-const DB_BACKUP_FILE = path.join(DATA_DIR, 'economy.backup.json');
-const DB_TEMP_FILE = path.join(DATA_DIR, 'economy.tmp.json');
+const TECHNICAL_SUPPORT_ROLE_ID = '1553740304958488616';
 
-const DEFAULT_CURRENCY_NAME = '𝐎𝐏𝐬';
+const TECHNICAL_REPORT_ROLE_ID = '1553740470625112134';
+
+const TICKET_IMAGE =
+    'https://cdn.discordapp.com/attachments/1553738433506189414/1553738495464448091/2.png?ex=6aba573c&is=6ab905bc&hm=b16510afd66e6422f197af0968c16fc8ecca8e2f855467eaa9daa2973da5864e';
+
+const TICKET_PANEL_IMAGE =
+    'https://cdn.discordapp.com/attachments/1553738433506189414/1553741567016177704/image.png?ex=6aba5a18&is=6ab90898&hm=20dac06cb79bf0c79ab439d19a4914b4b7a8e354039913f8d3295921eb457883';
+
+/* =========================================================
+   DATABASE
+========================================================= */
+
+const DB_FILE = path.join(__dirname, 'economy.json');
+
+const DB_BACKUP_FILE =
+    path.join(__dirname, 'economy.backup.json');
+
+const DB_TEMP_FILE =
+    path.join(__dirname, 'economy.tmp.json');
+
+/* =========================================================
+   TOKEN
+========================================================= */
 
 if (!TOKEN) {
-    console.error('❌ DISCORD_TOKEN غير موجود في .env أو Railway Variables.');
+    console.error(
+        '❌ DISCORD_TOKEN غير موجود في .env أو Railway Variables.'
+    );
+
     process.exit(1);
 }
+
+/* =========================================================
+   CLIENT
+========================================================= */
 
 const client = new Client({
     intents: [
@@ -54,12 +83,11 @@ const client = new Client({
 
 /* =========================================================
    DATABASE
-   كل سيرفر له بيانات مستقلة بالكامل
 ========================================================= */
 
 function emptyDB() {
     return {
-        version: 3,
+        version: 4,
         guilds: {}
     };
 }
@@ -82,30 +110,46 @@ function loadDB() {
     try {
         if (!fs.existsSync(DB_FILE)) {
             if (fs.existsSync(DB_BACKUP_FILE)) {
-                fs.copyFileSync(DB_BACKUP_FILE, DB_FILE);
+                fs.copyFileSync(
+                    DB_BACKUP_FILE,
+                    DB_FILE
+                );
             } else {
                 fs.writeFileSync(
                     DB_FILE,
-                    JSON.stringify(emptyDB(), null, 2),
+                    JSON.stringify(
+                        emptyDB(),
+                        null,
+                        2
+                    ),
                     'utf8'
                 );
             }
         }
 
-        const raw = fs.readFileSync(DB_FILE, 'utf8');
+        const raw =
+            fs.readFileSync(
+                DB_FILE,
+                'utf8'
+            );
 
         if (!raw.trim()) {
-            throw new Error('قاعدة البيانات فارغة');
+            throw new Error(
+                'قاعدة البيانات فارغة'
+            );
         }
 
-        const data = JSON.parse(raw);
+        const data =
+            JSON.parse(raw);
 
         if (
             !data ||
             typeof data !== 'object' ||
             Array.isArray(data)
         ) {
-            throw new Error('قاعدة البيانات غير صحيحة');
+            throw new Error(
+                'قاعدة البيانات غير صحيحة'
+            );
         }
 
         if (
@@ -116,17 +160,23 @@ function loadDB() {
             data.guilds = {};
         }
 
-        data.version = 3;
+        data.version = 4;
 
-        for (const guildId of Object.keys(data.guilds)) {
-            const guildData = data.guilds[guildId];
+        for (
+            const guildId
+            of Object.keys(data.guilds)
+        ) {
+            const guildData =
+                data.guilds[guildId];
 
             if (
                 !guildData ||
                 typeof guildData !== 'object' ||
                 Array.isArray(guildData)
             ) {
-                data.guilds[guildId] = createEmptyGuild();
+                data.guilds[guildId] =
+                    createEmptyGuild();
+
                 continue;
             }
 
@@ -136,7 +186,8 @@ function loadDB() {
                     'economyChannelId'
                 )
             ) {
-                guildData.economyChannelId = null;
+                guildData.economyChannelId =
+                    null;
             }
 
             if (
@@ -147,35 +198,59 @@ function loadDB() {
                 guildData.users = {};
             }
 
-            for (const userId of Object.keys(guildData.users)) {
-                const user = guildData.users[userId];
+            for (
+                const userId
+                of Object.keys(guildData.users)
+            ) {
+                const user =
+                    guildData.users[userId];
 
                 if (
                     !user ||
                     typeof user !== 'object' ||
                     Array.isArray(user)
                 ) {
-                    guildData.users[userId] = createEmptyUser();
+                    guildData.users[userId] =
+                        createEmptyUser();
+
                     continue;
                 }
 
-                if (typeof user.balance !== 'number') {
-                    user.balance = Number(user.balance) || 0;
+                if (
+                    typeof user.balance !== 'number'
+                ) {
+                    user.balance =
+                        Number(user.balance) || 0;
                 }
 
-                if (!Number.isFinite(user.balance)) {
+                if (
+                    !Number.isFinite(
+                        user.balance
+                    )
+                ) {
                     user.balance = 0;
                 }
 
-                if (user.balance < 0) {
+                if (
+                    user.balance < 0
+                ) {
                     user.balance = 0;
                 }
 
-                if (typeof user.lastDaily !== 'number') {
-                    user.lastDaily = Number(user.lastDaily) || 0;
+                if (
+                    typeof user.lastDaily !== 'number'
+                ) {
+                    user.lastDaily =
+                        Number(
+                            user.lastDaily
+                        ) || 0;
                 }
 
-                if (!Number.isFinite(user.lastDaily)) {
+                if (
+                    !Number.isFinite(
+                        user.lastDaily
+                    )
+                ) {
                     user.lastDaily = 0;
                 }
             }
@@ -190,13 +265,21 @@ function loadDB() {
         );
 
         try {
-            if (fs.existsSync(DB_BACKUP_FILE)) {
-                const backupRaw = fs.readFileSync(
-                    DB_BACKUP_FILE,
-                    'utf8'
-                );
+            if (
+                fs.existsSync(
+                    DB_BACKUP_FILE
+                )
+            ) {
+                const backupRaw =
+                    fs.readFileSync(
+                        DB_BACKUP_FILE,
+                        'utf8'
+                    );
 
-                const backup = JSON.parse(backupRaw);
+                const backup =
+                    JSON.parse(
+                        backupRaw
+                    );
 
                 if (
                     backup &&
@@ -211,7 +294,7 @@ function loadDB() {
                         backup.guilds = {};
                     }
 
-                    backup.version = 3;
+                    backup.version = 4;
 
                     console.log(
                         '♻️ تم استرجاع قاعدة البيانات من النسخة الاحتياطية.'
@@ -226,10 +309,6 @@ function loadDB() {
                 backupError
             );
         }
-
-        console.log(
-            '⚠️ سيتم إنشاء قاعدة بيانات جديدة.'
-        );
 
         return emptyDB();
     }
@@ -253,13 +332,14 @@ function saveDB(data) {
             data.guilds = {};
         }
 
-        data.version = 3;
+        data.version = 4;
 
-        const json = JSON.stringify(
-            data,
-            null,
-            2
-        );
+        const json =
+            JSON.stringify(
+                data,
+                null,
+                2
+            );
 
         fs.writeFileSync(
             DB_TEMP_FILE,
@@ -267,7 +347,11 @@ function saveDB(data) {
             'utf8'
         );
 
-        if (fs.existsSync(DB_FILE)) {
+        if (
+            fs.existsSync(
+                DB_FILE
+            )
+        ) {
             fs.copyFileSync(
                 DB_FILE,
                 DB_BACKUP_FILE
@@ -288,19 +372,13 @@ function saveDB(data) {
         );
 
         try {
-            if (fs.existsSync(DB_TEMP_FILE)) {
-                fs.unlinkSync(DB_TEMP_FILE);
-            }
-        } catch {}
-
-        try {
             if (
-                !fs.existsSync(DB_FILE) &&
-                fs.existsSync(DB_BACKUP_FILE)
+                fs.existsSync(
+                    DB_TEMP_FILE
+                )
             ) {
-                fs.copyFileSync(
-                    DB_BACKUP_FILE,
-                    DB_FILE
+                fs.unlinkSync(
+                    DB_TEMP_FILE
                 );
             }
         } catch {}
@@ -309,20 +387,21 @@ function saveDB(data) {
     }
 }
 
-/* =========================================================
-   SERVER DATA
-========================================================= */
-
-function ensureGuild(db, guildId) {
+function ensureGuild(
+    db,
+    guildId
+) {
     if (
         !db.guilds[guildId] ||
         typeof db.guilds[guildId] !== 'object' ||
         Array.isArray(db.guilds[guildId])
     ) {
-        db.guilds[guildId] = createEmptyGuild();
+        db.guilds[guildId] =
+            createEmptyGuild();
     }
 
-    const guildData = db.guilds[guildId];
+    const guildData =
+        db.guilds[guildId];
 
     if (
         !Object.prototype.hasOwnProperty.call(
@@ -330,7 +409,8 @@ function ensureGuild(db, guildId) {
             'economyChannelId'
         )
     ) {
-        guildData.economyChannelId = null;
+        guildData.economyChannelId =
+            null;
     }
 
     if (
@@ -344,46 +424,75 @@ function ensureGuild(db, guildId) {
     return guildData;
 }
 
-function ensureUser(db, guildId, userId) {
-    const guildData = ensureGuild(
-        db,
-        guildId
-    );
+function ensureUser(
+    db,
+    guildId,
+    userId
+) {
+    const guildData =
+        ensureGuild(
+            db,
+            guildId
+        );
 
     if (
         !guildData.users[userId] ||
         typeof guildData.users[userId] !== 'object' ||
         Array.isArray(guildData.users[userId])
     ) {
-        guildData.users[userId] = createEmptyUser();
+        guildData.users[userId] =
+            createEmptyUser();
     }
 
-    const user = guildData.users[userId];
+    const user =
+        guildData.users[userId];
 
-    if (typeof user.balance !== 'number') {
-        user.balance = Number(user.balance) || 0;
+    if (
+        typeof user.balance !== 'number'
+    ) {
+        user.balance =
+            Number(user.balance) || 0;
     }
 
-    if (!Number.isFinite(user.balance)) {
+    if (
+        !Number.isFinite(
+            user.balance
+        )
+    ) {
         user.balance = 0;
     }
 
-    if (user.balance < 0) {
+    if (
+        user.balance < 0
+    ) {
         user.balance = 0;
     }
 
-    if (typeof user.lastDaily !== 'number') {
-        user.lastDaily = Number(user.lastDaily) || 0;
+    if (
+        typeof user.lastDaily !== 'number'
+    ) {
+        user.lastDaily =
+            Number(
+                user.lastDaily
+            ) || 0;
     }
 
-    if (!Number.isFinite(user.lastDaily)) {
+    if (
+        !Number.isFinite(
+            user.lastDaily
+        )
+    ) {
         user.lastDaily = 0;
     }
 
     return user;
 }
 
-function getUser(db, guildId, userId) {
+function getUser(
+    db,
+    guildId,
+    userId
+) {
     return ensureUser(
         db,
         guildId,
@@ -396,21 +505,30 @@ function getUser(db, guildId, userId) {
 ========================================================= */
 
 function parseAmount(value) {
-    if (!value) return NaN;
+    if (!value) {
+        return NaN;
+    }
 
-    const text = String(value)
-        .trim()
-        .toLowerCase()
-        .replace(/,/g, '');
+    const text =
+        String(value)
+            .trim()
+            .toLowerCase()
+            .replace(/,/g, '');
 
-    const match = text.match(
-        /^(\d+(?:\.\d+)?)([kmbt])?$/
-    );
+    const match =
+        text.match(
+            /^(\d+(?:\.\d+)?)([kmbt])?$/
+        );
 
-    if (!match) return NaN;
+    if (!match) {
+        return NaN;
+    }
 
-    const number = Number(match[1]);
-    const suffix = match[2] || '';
+    const number =
+        Number(match[1]);
+
+    const suffix =
+        match[2] || '';
 
     const multipliers = {
         k: 1000,
@@ -420,19 +538,31 @@ function parseAmount(value) {
     };
 
     const amount =
-        number * (multipliers[suffix] || 1);
+        number *
+        (
+            multipliers[suffix] || 1
+        );
 
-    if (!Number.isFinite(amount)) {
+    if (
+        !Number.isFinite(
+            amount
+        )
+    ) {
         return NaN;
     }
 
     return Math.floor(amount);
 }
 
-function formatAmount(amount) {
-    amount = Number(amount) || 0;
+function formatAmount(
+    amount
+) {
+    amount =
+        Number(amount) || 0;
 
-    if (amount < 1000) {
+    if (
+        amount < 1000
+    ) {
         return String(amount);
     }
 
@@ -455,11 +585,23 @@ function formatAmount(amount) {
         }
     ];
 
-    for (const unit of units) {
-        if (amount >= unit.value) {
-            const result = amount / unit.value;
+    for (
+        const unit
+        of units
+    ) {
+        if (
+            amount >=
+            unit.value
+        ) {
+            const result =
+                amount /
+                unit.value;
 
-            if (Number.isInteger(result)) {
+            if (
+                Number.isInteger(
+                    result
+                )
+            ) {
                 return `${result}${unit.suffix}`;
             }
 
@@ -476,26 +618,9 @@ function formatAmount(amount) {
    HELPERS
 ========================================================= */
 
-function isEconomyChannel(message) {
-    if (!message.guild) {
-        return false;
-    }
-
-    const db = loadDB();
-
-    const guildData = ensureGuild(
-        db,
-        message.guild.id
-    );
-
-    return Boolean(
-        guildData.economyChannelId &&
-        guildData.economyChannelId ===
-            message.channel.id
-    );
-}
-
-function isAdmin(member) {
+function isAdmin(
+    member
+) {
     return Boolean(
         member &&
         member.permissions.has(
@@ -504,7 +629,31 @@ function isAdmin(member) {
     );
 }
 
-const pendingTransfers = new Map();
+function isEconomyChannel(
+    message
+) {
+    if (!message.guild) {
+        return false;
+    }
+
+    const db =
+        loadDB();
+
+    const guildData =
+        ensureGuild(
+            db,
+            message.guild.id
+        );
+
+    return Boolean(
+        guildData.economyChannelId &&
+        guildData.economyChannelId ===
+            message.channel.id
+    );
+}
+
+const pendingTransfers =
+    new Map();
 
 function transferKey(
     guildId,
@@ -513,95 +662,316 @@ function transferKey(
     return `${guildId}:${userId}`;
 }
 
-function cleanupPendingForGuild(guildId) {
+function cleanupPendingForGuild(
+    guildId
+) {
     for (
         const [key, value]
         of pendingTransfers.entries()
     ) {
         if (
-            value.guildId === guildId
+            value.guildId ===
+            guildId
         ) {
-            pendingTransfers.delete(key);
+            pendingTransfers.delete(
+                key
+            );
         }
     }
+}
+
+/* =========================================================
+   TICKET HELPERS
+========================================================= */
+
+function getTicketOwner(
+    channel
+) {
+    if (
+        !channel ||
+        !channel.topic
+    ) {
+        return null;
+    }
+
+    const match =
+        channel.topic.match(
+            /owner:(\d+)/
+        );
+
+    return match
+        ? match[1]
+        : null;
+}
+
+function getTicketType(
+    channel
+) {
+    if (
+        !channel ||
+        !channel.topic
+    ) {
+        return null;
+    }
+
+    const match =
+        channel.topic.match(
+            /type:([a-z_]+)/
+        );
+
+    return match
+        ? match[1]
+        : null;
+}
+
+function isTicket(
+    channel
+) {
+    return Boolean(
+        channel &&
+        channel.type === ChannelType.GuildText &&
+        channel.topic &&
+        channel.topic.includes(
+            'ticket:yes'
+        )
+    );
+}
+
+function getTicketRoleId(
+    type
+) {
+    if (
+        type ===
+        'technical_support'
+    ) {
+        return TECHNICAL_SUPPORT_ROLE_ID;
+    }
+
+    if (
+        type ===
+        'technical_report'
+    ) {
+        return TECHNICAL_REPORT_ROLE_ID;
+    }
+
+    return null;
+}
+
+async function findExistingTicket(
+    guild,
+    userId
+) {
+    return guild.channels.cache.find(
+        channel =>
+            isTicket(channel) &&
+            getTicketOwner(channel) ===
+                userId
+    );
+}
+
+function ticketPanelComponents() {
+    const menu =
+        new StringSelectMenuBuilder()
+            .setCustomId(
+                'ticket_open_menu'
+            )
+            .setPlaceholder(
+                'اختار القسم المناسب لفتح التذكرة'
+            )
+            .addOptions(
+                {
+                    label:
+                        'الدعم الفني',
+                    description:
+                        'للدعم والاستفسارات والمساعدة',
+                    value:
+                        'technical_support',
+                    emoji:
+                        '🛠️'
+                },
+                {
+                    label:
+                        'أبلاغ عن مشكلة تقنية',
+                    description:
+                        'للإبلاغ عن مشكلة تقنية',
+                    value:
+                        'technical_report',
+                    emoji:
+                        '⚠️'
+                }
+            );
+
+    return [
+        new ActionRowBuilder().addComponents(
+            menu
+        )
+    ];
+}
+
+function ticketControlComponents() {
+    const claimButton =
+        new ButtonBuilder()
+            .setCustomId(
+                'ticket_claim'
+            )
+            .setLabel(
+                'استلام'
+            )
+            .setStyle(
+                ButtonStyle.Secondary
+            );
+
+    const closeButton =
+        new ButtonBuilder()
+            .setCustomId(
+                'ticket_close'
+            )
+            .setLabel(
+                'غلق'
+            )
+            .setStyle(
+                ButtonStyle.Danger
+            );
+
+    const premiumButton =
+        new ButtonBuilder()
+            .setCustomId(
+                'ticket_premium'
+            )
+            .setLabel(
+                'ترقية البريميوم'
+            )
+            .setStyle(
+                ButtonStyle.Primary
+            );
+
+    const optionsMenu =
+        new StringSelectMenuBuilder()
+            .setCustomId(
+                'ticket_options'
+            )
+            .setPlaceholder(
+                'خــيــارات الــتــكــت'
+            )
+            .addOptions(
+                {
+                    label:
+                        'استدعاء صاحب التذكرة',
+                    description:
+                        'منشن صاحب التذكرة داخل التذكرة',
+                    value:
+                        'summon_owner',
+                    emoji:
+                        '📢'
+                },
+                {
+                    label:
+                        'إضافة عضو للتذكرة',
+                    description:
+                        'إضافة عضو جديد للتذكرة',
+                    value:
+                        'add_member',
+                    emoji:
+                        '➕'
+                },
+                {
+                    label:
+                        'إزالة عضو من التذكرة',
+                    description:
+                        'إزالة عضو من التذكرة',
+                    value:
+                        'remove_member',
+                    emoji:
+                        '➖'
+                },
+                {
+                    label:
+                        'تغيير اسم التذكرة',
+                    description:
+                        'تغيير اسم قناة التذكرة',
+                    value:
+                        'rename_ticket',
+                    emoji:
+                        '✏️'
+                },
+                {
+                    label:
+                        'قفل الشات',
+                    description:
+                        'منع صاحب التذكرة من الكتابة',
+                    value:
+                        'lock_chat',
+                    emoji:
+                        '🔒'
+                },
+                {
+                    label:
+                        'فتح الشات',
+                    description:
+                        'السماح لصاحب التذكرة بالكتابة',
+                    value:
+                        'unlock_chat',
+                    emoji:
+                        '🔓'
+                },
+                {
+                    label:
+                        'غلق التذكرة',
+                    description:
+                        'إغلاق وحذف التذكرة',
+                    value:
+                        'close_ticket',
+                    emoji:
+                        '🗑️'
+                }
+            );
+
+    return [
+        new ActionRowBuilder().addComponents(
+            claimButton,
+            premiumButton,
+            closeButton
+        ),
+        new ActionRowBuilder().addComponents(
+            optionsMenu
+        )
+    ];
 }
 
 /* =========================================================
    SLASH COMMANDS
 ========================================================= */
 
-const slashCommands = [
-    new SlashCommandBuilder()
-        .setName('currency')
-        .setDescription(
-            'تفعيل أو تعطيل نظام العملة'
-        )
-        .addSubcommand(sub =>
-            sub
-                .setName('enable')
-                .setDescription(
-                    'تفعيل العملة في الروم الحالي'
-                )
-        )
-        .addSubcommand(sub =>
-            sub
-                .setName('disable')
-                .setDescription(
-                    'تعطيل العملة في السيرفر'
-                )
-        )
-];
+const slashCommands = [];
+
+/* =========================================================
+   REGISTER SLASH
+========================================================= */
 
 async function registerSlashCommands() {
     try {
-        const rest = new REST({
-            version: '10'
-        }).setToken(TOKEN);
+        const rest =
+            new REST({
+                version: '10'
+            }).setToken(
+                TOKEN
+            );
 
         await rest.put(
             Routes.applicationCommands(
                 client.user.id
             ),
             {
-                body: []
-            }
-        );
-
-        for (
-            const guild
-            of client.guilds.cache.values()
-        ) {
-            try {
-                await rest.put(
-                    Routes.applicationGuildCommands(
-                        client.user.id,
-                        guild.id
-                    ),
-                    {
-                        body: []
-                    }
-                );
-            } catch (error) {
-                console.error(
-                    `❌ تعذر حذف أوامر السلاش القديمة من السيرفر ${guild.id}:`,
-                    error
-                );
-            }
-        }
-
-        await rest.put(
-            Routes.applicationCommands(
-                client.user.id
-            ),
-            {
-                body: slashCommands.map(
-                    command => command.toJSON()
-                )
+                body:
+                    slashCommands.map(
+                        command =>
+                            command.toJSON()
+                    )
             }
         );
 
         console.log(
-            '✅ تم تسجيل /currency فقط.'
+            '✅ تم تحديث أوامر السلاش.'
         );
 
     } catch (error) {
@@ -631,7 +1001,8 @@ client.once(
             '======================================'
         );
 
-        const db = loadDB();
+        const db =
+            loadDB();
 
         for (
             const guild
@@ -660,16 +1031,21 @@ client.once(
             client.user.setPresence({
                 activities: [
                     {
-                        name: 'customstatus',
+                        name:
+                            'customstatus',
                         type: 4,
-                        state: statuses[index]
+                        state:
+                            statuses[index]
                     }
                 ],
-                status: 'online'
+                status:
+                    'online'
             });
 
             index =
-                (index + 1) %
+                (
+                    index + 1
+                ) %
                 statuses.length;
         };
 
@@ -679,6 +1055,66 @@ client.once(
             updatePresence,
             1000
         );
+
+        for (
+            const guild
+            of client.guilds.cache.values()
+        ) {
+            const panelChannel =
+                guild.channels.cache.get(
+                    TICKET_PANEL_CHANNEL_ID
+                );
+
+            if (
+                panelChannel &&
+                panelChannel.isTextBased()
+            ) {
+                const existing =
+                    await panelChannel.messages.fetch({
+                        limit: 20
+                    }).catch(
+                        () => null
+                    );
+
+                if (existing) {
+                    const oldPanel =
+                        existing.find(
+                            msg =>
+                                msg.author.id ===
+                                    client.user.id &&
+                                msg.embeds.some(
+                                    embed =>
+                                        embed.title ===
+                                        '📥 | قسم الدعم الفني والمساعدة'
+                                )
+                        );
+
+                    if (oldPanel) {
+                        await oldPanel.edit({
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setColor(
+                                        '#D4AC0D'
+                                    )
+                                    .setTitle(
+                                        '📥 | قسم الدعم الفني والمساعدة'
+                                    )
+                                    .setDescription(
+                                        '**لـفتح تذكرة قم بالضغط على الزر اللذي بالأسفل ثم قم بتحديد إحتياجاتك.**\n\n⚠️ **شروط وقوانين فتح التذاكر:**\nيُمنع منعاً باتاً فتح تذكرة بدون سبب واضح أو للتسلية (تذكرة عشوائية = تايم أوت ).'
+                                    )
+                                    .setImage(
+                                        TICKET_PANEL_IMAGE
+                                    )
+                            ],
+                            components:
+                                ticketPanelComponents()
+                        }).catch(
+                            () => {}
+                        );
+                    }
+                }
+            }
+        }
     }
 );
 
@@ -690,7 +1126,8 @@ client.on(
     'guildCreate',
     guild => {
         try {
-            const db = loadDB();
+            const db =
+                loadDB();
 
             ensureGuild(
                 db,
@@ -699,13 +1136,9 @@ client.on(
 
             saveDB(db);
 
-            console.log(
-                `💾 تم إنشاء بيانات اقتصاد منفصلة للسيرفر: ${guild.id}`
-            );
-
         } catch (error) {
             console.error(
-                '❌ خطأ في إنشاء بيانات السيرفر:',
+                '❌ Guild Create Error:',
                 error
             );
         }
@@ -720,23 +1153,173 @@ client.on(
     'messageCreate',
     async message => {
         try {
-            if (message.author.bot) {
+            if (
+                message.author.bot
+            ) {
+                return;
+            }
+
+            if (
+                !message.guild
+            ) {
                 return;
             }
 
             const content =
                 message.content.trim();
 
-            if (!message.guild) {
+            /* =====================================================
+               دعم؟
+            ===================================================== */
+
+            if (
+                content ===
+                'دعم؟'
+            ) {
+                return message.channel.send({
+                    content:
+                        '```text\nيرجى كتابة مشكلتك أو استفسارك مرة واحدة فقط وإنتظار الرد من الإدارة\n```',
+                    files: [
+                        TICKET_IMAGE
+                    ]
+                });
+            }
+
+            /* =====================================================
+               #close
+            ===================================================== */
+
+            if (
+                content.toLowerCase() ===
+                    '#close' &&
+                isTicket(
+                    message.channel
+                )
+            ) {
+                if (
+                    !isAdmin(
+                        message.member
+                    ) &&
+                    !message.member.roles.cache.has(
+                        TECHNICAL_SUPPORT_ROLE_ID
+                    ) &&
+                    !message.member.roles.cache.has(
+                        TECHNICAL_REPORT_ROLE_ID
+                    )
+                ) {
+                    return;
+                }
+
+                await message.channel.send({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                '#D4AC0D'
+                            )
+                            .setDescription(
+                                '🔒 سيتم غلق التذكرة.'
+                            )
+                    ]
+                });
+
+                setTimeout(
+                    async () => {
+                        await message.channel.delete()
+                            .catch(
+                                () => {}
+                            );
+                    },
+                    1500
+                );
+
                 return;
             }
 
-            const db = loadDB();
+            /* =====================================================
+               #open / #Open
+            ===================================================== */
 
-            const guildData = ensureGuild(
-                db,
-                message.guild.id
-            );
+            if (
+                (
+                    content.toLowerCase() ===
+                        '#open'
+                ) &&
+                isTicket(
+                    message.channel
+                )
+            ) {
+                if (
+                    !isAdmin(
+                        message.member
+                    ) &&
+                    !message.member.roles.cache.has(
+                        TECHNICAL_SUPPORT_ROLE_ID
+                    ) &&
+                    !message.member.roles.cache.has(
+                        TECHNICAL_REPORT_ROLE_ID
+                    )
+                ) {
+                    return;
+                }
+
+                const ownerId =
+                    getTicketOwner(
+                        message.channel
+                    );
+
+                if (
+                    !ownerId
+                ) {
+                    return;
+                }
+
+                const owner =
+                    await message.guild.members
+                        .fetch(
+                            ownerId
+                        )
+                        .catch(
+                            () => null
+                        );
+
+                if (
+                    owner
+                ) {
+                    await message.channel.permissionOverwrites.edit(
+                        owner.id,
+                        {
+                            ViewChannel: true,
+                            SendMessages: true,
+                            ReadMessageHistory: true
+                        }
+                    );
+                }
+
+                return message.channel.send({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                '#D4AC0D'
+                            )
+                            .setDescription(
+                                '🔓 تم فتح الشات.'
+                            )
+                    ]
+                });
+            }
+
+            /* =====================================================
+               الاقتصاد
+            ===================================================== */
+
+            const db =
+                loadDB();
+
+            const guildData =
+                ensureGuild(
+                    db,
+                    message.guild.id
+                );
 
             /* =====================================================
                تفعيل روم
@@ -830,15 +1413,10 @@ client.on(
                 });
             }
 
-            /*
-            أوامر الاقتصاد تعمل فقط في الروم
-            المفعل لهذا السيرفر.
-            */
-
             if (
-                !guildData.economyChannelId ||
-                guildData.economyChannelId !==
-                    message.channel.id
+                !isEconomyChannel(
+                    message
+                )
             ) {
                 return;
             }
@@ -858,8 +1436,10 @@ client.on(
             ===================================================== */
 
             if (
-                content === 'مكافاة' ||
-                content === 'مكافأة'
+                content ===
+                    'مكافاة' ||
+                content ===
+                    'مكافأة'
             ) {
                 const accountAge =
                     Date.now() -
@@ -913,11 +1493,11 @@ client.on(
                     const hours =
                         Math.floor(
                             remaining /
-                            (
-                                60 *
-                                60 *
-                                1000
-                            )
+                                (
+                                    60 *
+                                    60 *
+                                    1000
+                                )
                         );
 
                     const minutes =
@@ -930,10 +1510,10 @@ client.on(
                                     1000
                                 )
                             ) /
-                            (
-                                60 *
-                                1000
-                            )
+                                (
+                                    60 *
+                                    1000
+                                )
                         );
 
                     return message.channel.send({
@@ -989,16 +1569,25 @@ client.on(
             }
 
             /* =====================================================
-               رصيد / OPS
+               رصيد
             ===================================================== */
 
             if (
-                content.toLowerCase() === '𝐎𝐏𝐬' ||
-                content.toLowerCase() === 'ops' ||
-                content === 'رصيد' ||
-                content.startsWith('رصيد ') ||
-                content.toLowerCase().startsWith('𝐎𝐏𝐬 ') ||
-                content.toLowerCase().startsWith('ops ')
+                content.toLowerCase() ===
+                    '𝐎𝐏𝐬' ||
+                content.toLowerCase() ===
+                    'ops' ||
+                content ===
+                    'رصيد' ||
+                content.startsWith(
+                    'رصيد '
+                ) ||
+                content.toLowerCase().startsWith(
+                    '𝐎𝐏𝐬 '
+                ) ||
+                content.toLowerCase().startsWith(
+                    'ops '
+                )
             ) {
                 const targetMember =
                     message.mentions.members.first() ||
@@ -1196,9 +1785,12 @@ client.on(
             ===================================================== */
 
             if (
-                content === 'توب' ||
-                content === 'التوب' ||
-                content.toLowerCase() === 'top' ||
+                content ===
+                    'توب' ||
+                content ===
+                    'التوب' ||
+                content.toLowerCase() ===
+                    'top' ||
                 /^توب\s+[1-5]$/i.test(
                     content
                 )
@@ -1265,7 +1857,8 @@ client.on(
                         start + 10
                     );
 
-                let description = '';
+                let description =
+                    '';
 
                 pageUsers.forEach(
                     (
@@ -1277,7 +1870,9 @@ client.on(
                     }
                 );
 
-                if (!description) {
+                if (
+                    !description
+                ) {
                     description =
                         `الصفحة **${page}** فارغة.`;
                 }
@@ -1317,233 +1912,877 @@ client.on(
         try {
 
             /* =====================================================
-               SLASH
+               فتح التذكرة
             ===================================================== */
 
             if (
-                interaction.isChatInputCommand()
+                interaction.isStringSelectMenu() &&
+                interaction.customId ===
+                    'ticket_open_menu'
             ) {
-                const db =
-                    loadDB();
-
-                if (!interaction.guild) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر يعمل داخل السيرفر فقط.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const guildId =
-                    interaction.guild.id;
-
-                const guildData =
-                    ensureGuild(
-                        db,
-                        guildId
-                    );
+                const type =
+                    interaction.values[0];
 
                 if (
-                    interaction.commandName !==
-                    'currency'
+                    type !==
+                        'technical_support' &&
+                    type !==
+                        'technical_report'
                 ) {
                     return;
                 }
 
+                const existing =
+                    await findExistingTicket(
+                        interaction.guild,
+                        interaction.user.id
+                    );
+
                 if (
-                    !isAdmin(
-                        interaction.member
-                    )
+                    existing
                 ) {
                     return interaction.reply({
                         content:
-                            '❌ هذا الأمر مخصص للإداريين فقط.',
+                            `❌ لديك تذكرة مفتوحة بالفعل: ${existing}`,
                         ephemeral:
                             true
                     });
                 }
 
-                const subcommand =
-                    interaction.options.getSubcommand();
+                const modal =
+                    new ModalBuilder()
+                        .setCustomId(
+                            `ticket_reason_${type}`
+                        )
+                        .setTitle(
+                            type ===
+                                'technical_support'
+                                ? 'الدعم الفني'
+                                : 'أبلاغ عن مشكلة تقنية'
+                        );
 
-                if (
-                    subcommand ===
-                    'enable'
-                ) {
-                    guildData.economyChannelId =
-                        interaction.channel.id;
+                const reason =
+                    new TextInputBuilder()
+                        .setCustomId(
+                            'ticket_reason_input'
+                        )
+                        .setLabel(
+                            'اكتب سبب فتح التذكرة'
+                        )
+                        .setPlaceholder(
+                            'اكتب مشكلتك أو استفسارك بالتفصيل...'
+                        )
+                        .setStyle(
+                            TextInputStyle.Paragraph
+                        )
+                        .setRequired(
+                            true
+                        )
+                        .setMaxLength(
+                            1000
+                        );
 
-                    saveDB(db);
+                modal.addComponents(
+                    new ActionRowBuilder().addComponents(
+                        reason
+                    )
+                );
 
-                    return interaction.reply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    `✅ تم تفعيل نظام العملة في <#${interaction.channel.id}>.\n\n💾 تم حفظ التفعيل للسيرفر.`
-                                )
-                        ]
-                    });
-                }
+                return interaction.showModal(
+                    modal
+                );
+            }
 
-                if (
-                    subcommand ===
-                    'disable'
-                ) {
-                    guildData.economyChannelId =
-                        null;
+            /* =====================================================
+               Modal فتح التذكرة
+            ===================================================== */
 
-                    cleanupPendingForGuild(
-                        guildId
+            if (
+                interaction.isModalSubmit() &&
+                interaction.customId.startsWith(
+                    'ticket_reason_'
+                )
+            ) {
+                const type =
+                    interaction.customId.replace(
+                        'ticket_reason_',
+                        ''
                     );
 
-                    saveDB(db);
+                const reason =
+                    interaction.fields.getTextInputValue(
+                        'ticket_reason_input'
+                    );
 
+                const existing =
+                    await findExistingTicket(
+                        interaction.guild,
+                        interaction.user.id
+                    );
+
+                if (
+                    existing
+                ) {
                     return interaction.reply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    '✅ تم تعطيل نظام العملة في هذا السيرفر.'
-                                )
-                        ]
+                        content:
+                            `❌ لديك تذكرة مفتوحة بالفعل: ${existing}`,
+                        ephemeral:
+                            true
                     });
                 }
+
+                const panelChannel =
+                    interaction.guild.channels.cache.get(
+                        TICKET_PANEL_CHANNEL_ID
+                    );
+
+                const parentId =
+                    panelChannel &&
+                    panelChannel.parentId
+                        ? panelChannel.parentId
+                        : undefined;
+
+                const roleId =
+                    getTicketRoleId(
+                        type
+                    );
+
+                const permissionOverwrites = [
+                    {
+                        id:
+                            interaction.guild.roles.everyone.id,
+                        deny:
+                            [
+                                PermissionFlagsBits.ViewChannel
+                            ]
+                    },
+                    {
+                        id:
+                            interaction.user.id,
+                        allow:
+                            [
+                                PermissionFlagsBits.ViewChannel,
+                                PermissionFlagsBits.SendMessages,
+                                PermissionFlagsBits.ReadMessageHistory,
+                                PermissionFlagsBits.AttachFiles,
+                                PermissionFlagsBits.EmbedLinks
+                            ]
+                    }
+                ];
+
+                if (
+                    roleId
+                ) {
+                    permissionOverwrites.push({
+                        id:
+                            roleId,
+                        allow:
+                            [
+                                PermissionFlagsBits.ViewChannel,
+                                PermissionFlagsBits.SendMessages,
+                                PermissionFlagsBits.ReadMessageHistory,
+                                PermissionFlagsBits.AttachFiles,
+                                PermissionFlagsBits.EmbedLinks
+                            ]
+                    });
+                }
+
+                permissionOverwrites.push({
+                    id:
+                        client.user.id,
+                    allow:
+                        [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory,
+                            PermissionFlagsBits.ManageChannels,
+                            PermissionFlagsBits.ManageMessages,
+                            PermissionFlagsBits.ManageRoles
+                        ]
+                });
+
+                const safeName =
+                    interaction.user.username
+                        .toLowerCase()
+                        .replace(
+                            /[^a-z0-9\u0600-\u06ff_-]/g,
+                            ''
+                        )
+                        .slice(
+                            0,
+                            70
+                        ) ||
+                    interaction.user.id;
+
+                const ticketPrefix =
+                    type ===
+                        'technical_support'
+                        ? 'دعم'
+                        : 'بلاغ';
+
+                const ticketChannel =
+                    await interaction.guild.channels.create({
+                        name:
+                            `${ticketPrefix}-${safeName}`,
+                        type:
+                            ChannelType.GuildText,
+                        parent:
+                            parentId,
+                        topic:
+                            `ticket:yes owner:${interaction.user.id} type:${type}`,
+                        permissionOverwrites
+                    });
+
+                const roleMention =
+                    roleId
+                        ? `<@&${roleId}>`
+                        : '';
+
+                const typeTitle =
+                    type ===
+                        'technical_support'
+                        ? 'الدعم الفني'
+                        : 'أبلاغ عن مشكلة تقنية';
+
+                const ticketEmbed =
+                    new EmbedBuilder()
+                        .setColor(
+                            '#D4AC0D'
+                        )
+                        .setDescription(
+                            `**${typeTitle}**\n\nيرجى انتظار مسؤولين التذكرة الرد عليك\n\nالسبب\n\`\`\`diff\n+ ${reason}\n\`\`\``
+                        )
+                        .setImage(
+                            TICKET_IMAGE
+                        );
+
+                await ticketChannel.send({
+                    content:
+                        `${roleMention} <@${interaction.user.id}>`,
+                    embeds: [
+                        ticketEmbed
+                    ],
+                    components:
+                        ticketControlComponents()
+                });
+
+                await interaction.reply({
+                    content:
+                        `✅ تم فتح تذكرتك: ${ticketChannel}`,
+                    ephemeral:
+                        true
+                });
 
                 return;
             }
 
             /* =====================================================
-               VERIFY TRANSFER
+               Ticket buttons
             ===================================================== */
 
             if (
                 interaction.isButton() &&
-                interaction.customId.startsWith(
-                    'verify_transfer_'
+                (
+                    interaction.customId ===
+                        'ticket_claim' ||
+                    interaction.customId ===
+                        'ticket_close' ||
+                    interaction.customId ===
+                        'ticket_premium'
                 )
             ) {
-                const parts =
-                    interaction.customId.split(
-                        '_'
+                if (
+                    !isTicket(
+                        interaction.channel
+                    )
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ هذا الزر يعمل داخل التذاكر فقط.',
+                        ephemeral:
+                            true
+                    });
+                }
+
+                if (
+                    interaction.customId ===
+                    'ticket_close'
+                ) {
+                    if (
+                        !isAdmin(
+                            interaction.member
+                        ) &&
+                        !interaction.member.roles.cache.has(
+                            TECHNICAL_SUPPORT_ROLE_ID
+                        ) &&
+                        !interaction.member.roles.cache.has(
+                            TECHNICAL_REPORT_ROLE_ID
+                        )
+                    ) {
+                        return interaction.reply({
+                            content:
+                                '❌ ليس لديك صلاحية غلق التذكرة.',
+                            ephemeral:
+                                true
+                        });
+                    }
+
+                    await interaction.reply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor(
+                                    '#D4AC0D'
+                                )
+                                .setDescription(
+                                    '🔒 سيتم غلق التذكرة.'
+                                )
+                        ]
+                    });
+
+                    setTimeout(
+                        async () => {
+                            await interaction.channel.delete()
+                                .catch(
+                                    () => {}
+                                );
+                        },
+                        1500
                     );
 
-                const senderId =
-                    parts[2];
+                    return;
+                }
 
-                const targetId =
-                    parts[3];
+                if (
+                    interaction.customId ===
+                    'ticket_claim'
+                ) {
+                    if (
+                        !isAdmin(
+                            interaction.member
+                        ) &&
+                        !interaction.member.roles.cache.has(
+                            TECHNICAL_SUPPORT_ROLE_ID
+                        ) &&
+                        !interaction.member.roles.cache.has(
+                            TECHNICAL_REPORT_ROLE_ID
+                        )
+                    ) {
+                        return interaction.reply({
+                            content:
+                                '❌ هذا الزر مخصص لفريق الدعم.',
+                            ephemeral:
+                                true
+                        });
+                    }
 
-                const amount =
-                    parseInt(
-                        parts[4]
+                    await interaction.channel.permissionOverwrites.edit(
+                        interaction.user.id,
+                        {
+                            ViewChannel:
+                                true,
+                            SendMessages:
+                                true,
+                            ReadMessageHistory:
+                                true
+                        }
+                    );
+
+                    return interaction.reply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor(
+                                    '#D4AC0D'
+                                )
+                                .setDescription(
+                                    `✅ تم استلام التذكرة بواسطة ${interaction.user}.`
+                                )
+                        ]
+                    });
+                }
+
+                if (
+                    interaction.customId ===
+                    'ticket_premium'
+                ) {
+                    return interaction.reply({
+                        content:
+                            '⭐ البريميوم',
+                        ephemeral:
+                            true
+                    });
+                }
+            }
+
+            /* =====================================================
+               Ticket options
+            ===================================================== */
+
+            if (
+                interaction.isStringSelectMenu() &&
+                interaction.customId ===
+                    'ticket_options'
+            ) {
+                if (
+                    !isTicket(
+                        interaction.channel
+                    )
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ هذه القائمة تعمل داخل التذاكر فقط.',
+                        ephemeral:
+                            true
+                    });
+                }
+
+                const selected =
+                    interaction.values[0];
+
+                const canManage =
+                    isAdmin(
+                        interaction.member
+                    ) ||
+                    interaction.member.roles.cache.has(
+                        TECHNICAL_SUPPORT_ROLE_ID
+                    ) ||
+                    interaction.member.roles.cache.has(
+                        TECHNICAL_REPORT_ROLE_ID
                     );
 
                 if (
-                    interaction.user.id !==
-                    senderId
+                    selected ===
+                    'summon_owner'
                 ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الزر ليس مخصصاً لك.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                if (!interaction.guild) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر يعمل داخل السيرفر فقط.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const key =
-                    transferKey(
-                        interaction.guild.id,
-                        senderId
-                    );
-
-                const transfer =
-                    pendingTransfers.get(
-                        key
-                    );
-
-                if (!transfer) {
-                    return interaction.reply({
-                        content:
-                            '❌ عملية التحويل انتهت أو غير موجودة.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const db =
-                    loadDB();
-
-                const sender =
-                    getUser(
-                        db,
-                        interaction.guild.id,
-                        senderId
-                    );
-
-                getUser(
-                    db,
-                    interaction.guild.id,
-                    targetId
-                );
-
-                if (
-                    sender.balance <
-                    amount
-                ) {
-                    pendingTransfers.delete(
-                        key
-                    );
-
-                    return interaction.reply({
-                        content:
-                            '❌ لم يعد لديك رصيد كافٍ لإتمام العملية.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                let code = '';
-
-                for (
-                    let i = 0;
-                    i < 6;
-                    i++
-                ) {
-                    code +=
-                        Math.floor(
-                            Math.random() * 10
+                    const ownerId =
+                        getTicketOwner(
+                            interaction.channel
                         );
+
+                    if (
+                        !ownerId
+                    ) {
+                        return interaction.reply({
+                            content:
+                                '❌ تعذر العثور على صاحب التذكرة.',
+                            ephemeral:
+                                true
+                        });
+                    }
+
+                    const owner =
+                        await interaction.guild.members
+                            .fetch(
+                                ownerId
+                            )
+                            .catch(
+                                () => null
+                            );
+
+                    if (
+                        !owner
+                    ) {
+                        return interaction.reply({
+                            content:
+                                '❌ صاحب التذكرة غير موجود.',
+                            ephemeral:
+                                true
+                        });
+                    }
+
+                    return interaction.reply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor(
+                                    '#D4AC0D'
+                                )
+                                .setDescription(
+                                    `📢 تم استدعاء صاحب التذكرة ${owner}.`
+                                )
+                        ]
+                    });
                 }
 
-                transfer.code =
-                    code;
+                if (
+                    !canManage
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ هذا الخيار مخصص لفريق الدعم.',
+                        ephemeral:
+                            true
+                    });
+                }
 
-                pendingTransfers.set(
-                    key,
-                    transfer
+                if (
+                    selected ===
+                        'add_member' ||
+                    selected ===
+                        'remove_member'
+                ) {
+                    const modal =
+                        new ModalBuilder()
+                            .setCustomId(
+                                selected ===
+                                    'add_member'
+                                    ? 'ticket_add_member'
+                                    : 'ticket_remove_member'
+                            )
+                            .setTitle(
+                                selected ===
+                                    'add_member'
+                                    ? 'إضافة عضو للتذكرة'
+                                    : 'إزالة عضو من التذكرة'
+                            );
+
+                    const memberInput =
+                        new TextInputBuilder()
+                            .setCustomId(
+                                'member_id'
+                            )
+                            .setLabel(
+                                'ID العضو'
+                            )
+                            .setPlaceholder(
+                                'ضع ID العضو هنا'
+                            )
+                            .setStyle(
+                                TextInputStyle.Short
+                            )
+                            .setRequired(
+                                true
+                            );
+
+                    modal.addComponents(
+                        new ActionRowBuilder().addComponents(
+                            memberInput
+                        )
+                    );
+
+                    return interaction.showModal(
+                        modal
+                    );
+                }
+
+                if (
+                    selected ===
+                    'rename_ticket'
+                ) {
+                    const modal =
+                        new ModalBuilder()
+                            .setCustomId(
+                                'ticket_rename'
+                            )
+                            .setTitle(
+                                'تغيير اسم التذكرة'
+                            );
+
+                    const nameInput =
+                        new TextInputBuilder()
+                            .setCustomId(
+                                'ticket_name'
+                            )
+                            .setLabel(
+                                'اسم التذكرة الجديد'
+                            )
+                            .setPlaceholder(
+                                'اكتب الاسم الجديد'
+                            )
+                            .setStyle(
+                                TextInputStyle.Short
+                            )
+                            .setRequired(
+                                true
+                            )
+                            .setMaxLength(
+                                90
+                            );
+
+                    modal.addComponents(
+                        new ActionRowBuilder().addComponents(
+                            nameInput
+                        )
+                    );
+
+                    return interaction.showModal(
+                        modal
+                    );
+                }
+
+                if (
+                    selected ===
+                    'lock_chat'
+                ) {
+                    const ownerId =
+                        getTicketOwner(
+                            interaction.channel
+                        );
+
+                    if (
+                        ownerId
+                    ) {
+                        await interaction.channel.permissionOverwrites.edit(
+                            ownerId,
+                            {
+                                SendMessages:
+                                    false
+                            }
+                        );
+                    }
+
+                    return interaction.reply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor(
+                                    '#D4AC0D'
+                                )
+                                .setDescription(
+                                    '🔒 تم قفل الشات.'
+                                )
+                        ]
+                    });
+                }
+
+                if (
+                    selected ===
+                    'unlock_chat'
+                ) {
+                    const ownerId =
+                        getTicketOwner(
+                            interaction.channel
+                        );
+
+                    if (
+                        ownerId
+                    ) {
+                        await interaction.channel.permissionOverwrites.edit(
+                            ownerId,
+                            {
+                                ViewChannel:
+                                    true,
+                                SendMessages:
+                                    true,
+                                ReadMessageHistory:
+                                    true
+                            }
+                        );
+                    }
+
+                    return interaction.reply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor(
+                                    '#D4AC0D'
+                                )
+                                .setDescription(
+                                    '🔓 تم فتح الشات.'
+                                )
+                        ]
+                    });
+                }
+
+                if (
+                    selected ===
+                    'close_ticket'
+                ) {
+                    await interaction.reply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor(
+                                    '#D4AC0D'
+                                )
+                                .setDescription(
+                                    '🔒 سيتم غلق التذكرة.'
+                                )
+                        ]
+                    });
+
+                    setTimeout(
+                        async () => {
+                            await interaction.channel.delete()
+                                .catch(
+                                    () => {}
+                                );
+                        },
+                        1500
+                    );
+
+                    return;
+                }
+            }
+
+            /* =====================================================
+               Ticket modals
+            ===================================================== */
+
+            if (
+                interaction.isModalSubmit() &&
+                interaction.customId ===
+                    'ticket_add_member'
+            ) {
+                const memberId =
+                    interaction.fields.getTextInputValue(
+                        'member_id'
+                    ).trim();
+
+                const member =
+                    await interaction.guild.members
+                        .fetch(
+                            memberId
+                        )
+                        .catch(
+                            () => null
+                        );
+
+                if (
+                    !member
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ لم يتم العثور على العضو.',
+                        ephemeral:
+                            true
+                    });
+                }
+
+                await interaction.channel.permissionOverwrites.edit(
+                    member.id,
+                    {
+                        ViewChannel:
+                            true,
+                        SendMessages:
+                            true,
+                        ReadMessageHistory:
+                            true,
+                        AttachFiles:
+                            true,
+                        EmbedLinks:
+                            true
+                    }
                 );
 
                 return interaction.reply({
-                    content:
-                        `🔐 رمز التحقق الخاص بالتحويل:\n\n**${code}**\n\nقم بإرسال الرمز في روم العملات لتأكيد العملية.`,
-                    ephemeral:
-                        true
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                '#D4AC0D'
+                            )
+                            .setDescription(
+                                `✅ تم إضافة ${member} إلى التذكرة.`
+                            )
+                    ]
                 });
+            }
+
+            if (
+                interaction.isModalSubmit() &&
+                interaction.customId ===
+                    'ticket_remove_member'
+            ) {
+                const memberId =
+                    interaction.fields.getTextInputValue(
+                        'member_id'
+                    ).trim();
+
+                const member =
+                    await interaction.guild.members
+                        .fetch(
+                            memberId
+                        )
+                        .catch(
+                            () => null
+                        );
+
+                if (
+                    !member
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ لم يتم العثور على العضو.',
+                        ephemeral:
+                            true
+                    });
+                }
+
+                await interaction.channel.permissionOverwrites.delete(
+                    member.id
+                ).catch(
+                    () => {}
+                );
+
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                '#D4AC0D'
+                            )
+                            .setDescription(
+                                `✅ تم إزالة ${member} من التذكرة.`
+                            )
+                    ]
+                });
+            }
+
+            if (
+                interaction.isModalSubmit() &&
+                interaction.customId ===
+                    'ticket_rename'
+            ) {
+                let newName =
+                    interaction.fields.getTextInputValue(
+                        'ticket_name'
+                    ).trim();
+
+                newName =
+                    newName
+                        .replace(
+                            /[^a-zA-Z0-9\u0600-\u06ff_-]/g,
+                            '-'
+                        )
+                        .replace(
+                            /-+/g,
+                            '-'
+                        )
+                        .slice(
+                            0,
+                            90
+                        );
+
+                if (
+                    !newName
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ اسم التذكرة غير صالح.',
+                        ephemeral:
+                            true
+                    });
+                }
+
+                await interaction.channel.setName(
+                    newName
+                );
+
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(
+                                '#D4AC0D'
+                            )
+                            .setDescription(
+                                `✅ تم تغيير اسم التذكرة إلى **${newName}**.`
+                            )
+                    ]
+                });
+            }
+
+            /* =====================================================
+               Slash
+            ===================================================== */
+
+            if (
+                interaction.isChatInputCommand()
+            ) {
+                return;
             }
 
         } catch (error) {
@@ -1565,6 +2804,154 @@ client.on(
                     () => {}
                 );
             }
+        }
+    }
+);
+
+/* =========================================================
+   TRANSFER BUTTON
+========================================================= */
+
+client.on(
+    'interactionCreate',
+    async interaction => {
+        try {
+            if (
+                !interaction.isButton() ||
+                !interaction.customId.startsWith(
+                    'verify_transfer_'
+                )
+            ) {
+                return;
+            }
+
+            const parts =
+                interaction.customId.split(
+                    '_'
+                );
+
+            const senderId =
+                parts[2];
+
+            const targetId =
+                parts[3];
+
+            const amount =
+                parseInt(
+                    parts[4]
+                );
+
+            if (
+                interaction.user.id !==
+                senderId
+            ) {
+                return interaction.reply({
+                    content:
+                        '❌ هذا الزر ليس مخصصاً لك.',
+                    ephemeral:
+                        true
+                });
+            }
+
+            if (
+                !interaction.guild
+            ) {
+                return interaction.reply({
+                    content:
+                        '❌ هذا الأمر يعمل داخل السيرفر فقط.',
+                    ephemeral:
+                        true
+                });
+            }
+
+            const key =
+                transferKey(
+                    interaction.guild.id,
+                    senderId
+                );
+
+            const transfer =
+                pendingTransfers.get(
+                    key
+                );
+
+            if (
+                !transfer
+            ) {
+                return interaction.reply({
+                    content:
+                        '❌ عملية التحويل انتهت أو غير موجودة.',
+                    ephemeral:
+                        true
+                });
+            }
+
+            const db =
+                loadDB();
+
+            const sender =
+                getUser(
+                    db,
+                    interaction.guild.id,
+                    senderId
+                );
+
+            getUser(
+                db,
+                interaction.guild.id,
+                targetId
+            );
+
+            if (
+                sender.balance <
+                amount
+            ) {
+                pendingTransfers.delete(
+                    key
+                );
+
+                return interaction.reply({
+                    content:
+                        '❌ لم يعد لديك رصيد كافٍ لإتمام العملية.',
+                    ephemeral:
+                        true
+                });
+            }
+
+            let code = '';
+
+            for (
+                let i = 0;
+                i < 6;
+                i++
+            ) {
+                code +=
+                    Math.floor(
+                        Math.random() *
+                        10
+                    );
+            }
+
+            transfer.code =
+                code;
+
+            pendingTransfers.set(
+                key,
+                transfer
+            );
+
+            return interaction.reply({
+                content:
+                    `🔐 رمز التحقق الخاص بالتحويل:\n\n**${code}**\n\nقم بإرسال الرمز في روم العملات لتأكيد العملية.`,
+                ephemeral:
+                    true
+            });
+
+        } catch (error) {
+            console.error(
+                '❌ Transfer Button Error:',
+                error
+            );
         }
     }
 );
@@ -1602,157 +2989,161 @@ client.on(
                 );
 
             if (
-                pendingTransfers.has(
+                !pendingTransfers.has(
                     key
                 )
             ) {
-                const transfer =
-                    pendingTransfers.get(
-                        key
+                return;
+            }
+
+            const transfer =
+                pendingTransfers.get(
+                    key
+                );
+
+            if (
+                !transfer.code ||
+                content !==
+                    transfer.code
+            ) {
+                return;
+            }
+
+            pendingTransfers.delete(
+                key
+            );
+
+            await message.delete()
+                .catch(
+                    () => {}
+                );
+
+            if (
+                transfer.botMsg
+            ) {
+                await transfer.botMsg
+                    .delete()
+                    .catch(
+                        () => {}
                     );
+            }
 
-                if (
-                    transfer.code &&
-                    content ===
-                        transfer.code
-                ) {
-                    pendingTransfers.delete(
-                        key
-                    );
+            const db =
+                loadDB();
 
-                    await message.delete()
-                        .catch(
-                            () => {}
-                        );
+            const sender =
+                getUser(
+                    db,
+                    message.guild.id,
+                    message.author.id
+                );
 
-                    if (
-                        transfer.botMsg
-                    ) {
-                        await transfer.botMsg
-                            .delete()
-                            .catch(
-                                () => {}
-                            );
-                    }
+            const target =
+                getUser(
+                    db,
+                    message.guild.id,
+                    transfer.targetId
+                );
 
-                    const db =
-                        loadDB();
-
-                    const sender =
-                        getUser(
-                            db,
-                            message.guild.id,
-                            message.author.id
-                        );
-
-                    const target =
-                        getUser(
-                            db,
-                            message.guild.id,
-                            transfer.targetId
-                        );
-
-                    if (
-                        sender.balance <
-                        transfer.amount
-                    ) {
-                        return message.channel.send({
-                            embeds: [
-                                new EmbedBuilder()
-                                    .setColor(
-                                        '#D4AC0D'
-                                    )
-                                    .setDescription(
-                                        '❌ ليس لديك رصيد كافٍ لإتمام عملية التحويل.'
-                                    )
-                            ]
-                        });
-                    }
-
-                    sender.balance -=
-                        transfer.amount;
-
-                    target.balance +=
-                        transfer.amount;
-
-                    saveDB(db);
-
-                    const targetMember =
-                        await message.guild.members
-                            .fetch(
-                                transfer.targetId
-                            )
-                            .catch(
-                                () => null
-                            );
-
-                    const receiptEmbed =
+            if (
+                sender.balance <
+                transfer.amount
+            ) {
+                return message.channel.send({
+                    embeds: [
                         new EmbedBuilder()
                             .setColor(
                                 '#D4AC0D'
                             )
-                            .setTitle(
-                                'إيصال تحويل'
+                            .setDescription(
+                                '❌ ليس لديك رصيد كافٍ لإتمام عملية التحويل.'
                             )
-                            .addFields(
-                                {
-                                    name:
-                                        'المبلغ',
-                                    value:
-                                        `\`\`\`fix\n${formatAmount(transfer.amount)} 𝐎𝐏𝐬\n\`\`\``
-                                },
-                                {
-                                    name:
-                                        'إلى',
-                                    value:
-                                        `\`\`\`ini\n[ ${
-                                            targetMember
-                                                ? targetMember.user.tag
-                                                : transfer.targetId
-                                        } ]\n\`\`\``
-                                },
-                                {
-                                    name:
-                                        'من',
-                                    value:
-                                        `\`\`\`ini\n[ ${message.author.tag} ]\n\`\`\``
-                                }
-                            )
-                            .setTimestamp();
+                    ]
+                });
+            }
 
-                    await message.author.send({
-                        embeds: [
-                            receiptEmbed
-                        ]
-                    }).catch(
-                        () => {}
+            sender.balance -=
+                transfer.amount;
+
+            target.balance +=
+                transfer.amount;
+
+            saveDB(db);
+
+            const targetMember =
+                await message.guild.members
+                    .fetch(
+                        transfer.targetId
+                    )
+                    .catch(
+                        () => null
                     );
 
-                    if (
-                        targetMember
-                    ) {
-                        await targetMember.send({
-                            embeds: [
-                                receiptEmbed
-                            ]
-                        }).catch(
-                            () => {}
-                        );
-                    }
+            const receiptEmbed =
+                new EmbedBuilder()
+                    .setColor(
+                        '#D4AC0D'
+                    )
+                    .setTitle(
+                        'إيصال تحويل'
+                    )
+                    .addFields(
+                        {
+                            name:
+                                'المبلغ',
+                            value:
+                                `\`\`\`fix\n${formatAmount(transfer.amount)} 𝐎𝐏𝐬\n\`\`\``
+                        },
+                        {
+                            name:
+                                'إلى',
+                            value:
+                                `\`\`\`ini\n[ ${
+                                    targetMember
+                                        ? targetMember.user.tag
+                                        : transfer.targetId
+                                } ]\n\`\`\``
+                        },
+                        {
+                            name:
+                                'من',
+                            value:
+                                `\`\`\`ini\n[ ${message.author.tag} ]\n\`\`\``
+                        }
+                    )
+                    .setTimestamp();
 
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    `✅ تم التحويل بنجاح بقيمة **${formatAmount(transfer.amount)} 𝐎𝐏𝐬**.`
-                                )
-                        ]
-                    });
-                }
+            await message.author.send({
+                embeds: [
+                    receiptEmbed
+                ]
+            }).catch(
+                () => {}
+            );
+
+            if (
+                targetMember
+            ) {
+                await targetMember.send({
+                    embeds: [
+                        receiptEmbed
+                    ]
+                }).catch(
+                    () => {}
+                );
             }
+
+            return message.channel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(
+                            '#D4AC0D'
+                        )
+                        .setDescription(
+                            `✅ تم التحويل بنجاح بقيمة **${formatAmount(transfer.amount)} 𝐎𝐏𝐬**.`
+                        )
+                ]
+            });
 
         } catch (error) {
             console.error(
@@ -1831,7 +3222,7 @@ function gracefulSave() {
 }
 
 /* =========================================================
-   SIGINT
+   SHUTDOWN
 ========================================================= */
 
 process.on(
@@ -1842,10 +3233,6 @@ process.on(
         process.exit(0);
     }
 );
-
-/* =========================================================
-   SIGTERM
-========================================================= */
 
 process.on(
     'SIGTERM',
