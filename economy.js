@@ -306,6 +306,21 @@ function cleanupPendingForGuild(guildId) {
     }
 }
 
+/*
+=========================================================
+أوامر السلاش الموجودة فقط:
+ /currency enable
+ /currency disable
+
+تم حذف:
+ /give
+ /withdraw
+ /balance
+ /daily
+ /top
+=========================================================
+*/
+
 const slashCommands = [
     new SlashCommandBuilder()
         .setName('currency')
@@ -319,64 +334,6 @@ const slashCommands = [
             sub
                 .setName('disable')
                 .setDescription('تعطيل العملة في السيرفر')
-        ),
-
-    new SlashCommandBuilder()
-        .setName('give')
-        .setDescription('إعطاء رصيد لعضو')
-        .addUserOption(option =>
-            option
-                .setName('user')
-                .setDescription('العضو')
-                .setRequired(true)
-        )
-        .addStringOption(option =>
-            option
-                .setName('amount')
-                .setDescription('المبلغ مثل 20k أو 2m')
-                .setRequired(true)
-        ),
-
-    new SlashCommandBuilder()
-        .setName('withdraw')
-        .setDescription('سحب رصيد من عضو')
-        .addUserOption(option =>
-            option
-                .setName('user')
-                .setDescription('العضو')
-                .setRequired(true)
-        )
-        .addStringOption(option =>
-            option
-                .setName('amount')
-                .setDescription('المبلغ أو نص أو كامل')
-                .setRequired(true)
-        ),
-
-    new SlashCommandBuilder()
-        .setName('balance')
-        .setDescription('عرض الرصيد')
-        .addUserOption(option =>
-            option
-                .setName('user')
-                .setDescription('العضو')
-                .setRequired(false)
-        ),
-
-    new SlashCommandBuilder()
-        .setName('daily')
-        .setDescription('استلام المكافأة اليومية'),
-
-    new SlashCommandBuilder()
-        .setName('top')
-        .setDescription('عرض قائمة التوب')
-        .addIntegerOption(option =>
-            option
-                .setName('page')
-                .setDescription('رقم الصفحة من 1 إلى 5')
-                .setMinValue(1)
-                .setMaxValue(5)
-                .setRequired(false)
         )
 ];
 
@@ -395,7 +352,7 @@ async function registerSlashCommands() {
             }
         );
 
-        console.log('✅ تم تسجيل أوامر السلاش.');
+        console.log('✅ تم تسجيل أوامر السلاش فقط: تفعيل وتعطيل نظام العملة.');
     } catch (error) {
         console.error('❌ فشل تسجيل أوامر السلاش:', error);
     }
@@ -650,10 +607,14 @@ client.on('messageCreate', async message => {
                 message.guild.id
             );
 
-        if (
-            content === 'تفعيل العملة' ||
-            content === 'تفعيل العملات'
-        ) {
+        /*
+        =========================================================
+        تفعيل روم / تعطيل روم
+        أوامر عادية بالكتابة
+        =========================================================
+        */
+
+        if (content === 'تفعيل روم') {
             if (!isAdmin(message.member)) {
                 return message.channel.send({
                     embeds: [
@@ -682,10 +643,7 @@ client.on('messageCreate', async message => {
             });
         }
 
-        if (
-            content === 'تعطيل العملة' ||
-            content === 'تعطيل العملات'
-        ) {
+        if (content === 'تعطيل روم') {
             if (!isAdmin(message.member)) {
                 return message.channel.send({
                     embeds: [
@@ -733,6 +691,12 @@ client.on('messageCreate', async message => {
                 message.guild.id,
                 userId
             );
+
+        /*
+        =========================================================
+        مكافأة - أمر كتابي فقط
+        =========================================================
+        */
 
         if (
             content === 'مكافاة' ||
@@ -858,6 +822,12 @@ client.on('messageCreate', async message => {
             });
         }
 
+        /*
+        =========================================================
+        رصيد - أمر كتابي فقط
+        =========================================================
+        */
+
         if (
             content.toLowerCase() === '𝐎𝐏𝐬' ||
             content.toLowerCase() === 'ops' ||
@@ -893,6 +863,12 @@ client.on('messageCreate', async message => {
                 ]
             });
         }
+
+        /*
+        =========================================================
+        تحويل - أمر كتابي
+        =========================================================
+        */
 
         if (content.startsWith('تحويل')) {
             const args =
@@ -1016,6 +992,12 @@ client.on('messageCreate', async message => {
 
             return;
         }
+
+        /*
+        =========================================================
+        توب - أمر كتابي فقط
+        =========================================================
+        */
 
         if (
             content === 'توب' ||
@@ -1207,6 +1189,12 @@ client.on('messageCreate', async message => {
             });
         }
 
+        /*
+        =========================================================
+        اعطي - أمر كتابي فقط
+        =========================================================
+        */
+
         if (content.startsWith('اعطي')) {
             if (!isAdmin(message.member)) {
                 return message.channel.send({
@@ -1269,6 +1257,12 @@ client.on('messageCreate', async message => {
                 ]
             });
         }
+
+        /*
+        =========================================================
+        سحب - أمر كتابي فقط
+        =========================================================
+        */
 
         if (content.startsWith('سحب')) {
             if (!isAdmin(message.member)) {
@@ -1371,6 +1365,7 @@ client.on('messageCreate', async message => {
                 ]
             });
         }
+
     } catch (error) {
         console.error(
             '❌ Message Error:',
@@ -1381,6 +1376,14 @@ client.on('messageCreate', async message => {
 
 client.on('interactionCreate', async interaction => {
     try {
+        /*
+        =========================================================
+        أوامر السلاش الوحيدة:
+        /currency enable
+        /currency disable
+        =========================================================
+        */
+
         if (interaction.isChatInputCommand()) {
             const db =
                 loadDB();
@@ -1451,376 +1454,8 @@ client.on('interactionCreate', async interaction => {
                         ]
                     });
                 }
-            }
 
-            const channelCheck =
-                slashEconomyEnabled(
-                    db,
-                    guildId,
-                    interaction.channel.id
-                );
-
-            if (!channelCheck.enabled) {
-                return interaction.reply({
-                    content:
-                        channelCheck.message,
-                    ephemeral: true
-                });
-            }
-
-            if (interaction.commandName === 'give') {
-                if (!isAdmin(interaction.member)) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر مخصص للإداريين فقط.',
-                        ephemeral: true
-                    });
-                }
-
-                const targetUser =
-                    interaction.options.getUser('user');
-
-                const amount =
-                    parseAmount(
-                        interaction.options.getString('amount')
-                    );
-
-                if (
-                    !targetUser ||
-                    isNaN(amount) ||
-                    amount <= 0
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ المبلغ غير صحيح.',
-                        ephemeral: true
-                    });
-                }
-
-                const user =
-                    getUser(
-                        db,
-                        guildId,
-                        targetUser.id
-                    );
-
-                user.balance +=
-                    amount;
-
-                saveDB(db);
-
-                return interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor('#D4AC0D')
-                            .setDescription(
-                                `✅ تم إضافة **${formatAmount(
-                                    amount
-                                )} 𝐎𝐏𝐬** إلى رصيد <@${targetUser.id}>.`
-                            )
-                    ]
-                });
-            }
-
-            if (interaction.commandName === 'withdraw') {
-                if (!isAdmin(interaction.member)) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر مخصص للإداريين فقط.',
-                        ephemeral: true
-                    });
-                }
-
-                const targetUser =
-                    interaction.options.getUser('user');
-
-                const amountText =
-                    interaction.options.getString('amount');
-
-                if (!targetUser || !amountText) {
-                    return interaction.reply({
-                        content:
-                            '❌ البيانات غير مكتملة.',
-                        ephemeral: true
-                    });
-                }
-
-                const user =
-                    getUser(
-                        db,
-                        guildId,
-                        targetUser.id
-                    );
-
-                const balance =
-                    Number(user.balance) || 0;
-
-                const value =
-                    amountText.toLowerCase();
-
-                let amount = 0;
-
-                if (value === 'كامل') {
-                    amount =
-                        balance;
-                } else if (value === 'نص') {
-                    amount =
-                        Math.floor(
-                            balance / 2
-                        );
-                } else {
-                    amount =
-                        parseAmount(
-                            value
-                        );
-                }
-
-                if (
-                    isNaN(amount) ||
-                    amount <= 0
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ المبلغ غير صحيح.',
-                        ephemeral: true
-                    });
-                }
-
-                user.balance =
-                    Math.max(
-                        0,
-                        balance - amount
-                    );
-
-                saveDB(db);
-
-                return interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor('#D4AC0D')
-                            .setDescription(
-                                `✅ تم سحب **${formatAmount(
-                                    amount
-                                )} 𝐎𝐏𝐬** من رصيد <@${targetUser.id}>.`
-                            )
-                    ]
-                });
-            }
-
-            if (interaction.commandName === 'balance') {
-                const targetUser =
-                    interaction.options.getUser('user') ||
-                    interaction.user;
-
-                const user =
-                    getUser(
-                        db,
-                        guildId,
-                        targetUser.id
-                    );
-
-                return interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor('#D4AC0D')
-                            .setDescription(
-                                targetUser.id === interaction.user.id
-                                    ? `رصيدك الحالي : ${formatAmount(
-                                        user.balance
-                                    )} 𝐎𝐏𝐬`
-                                    : `رصيد <@${targetUser.id}> الحالي : ${formatAmount(
-                                        user.balance
-                                    )} 𝐎𝐏𝐬`
-                            )
-                    ]
-                });
-            }
-
-            if (interaction.commandName === 'daily') {
-                const accountAge =
-                    Date.now() -
-                    interaction.user.createdTimestamp;
-
-                const fourteenDays =
-                    14 *
-                    24 *
-                    60 *
-                    60 *
-                    1000;
-
-                if (
-                    accountAge <
-                    fourteenDays
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ لا يمكنك أخذ المكافأة اليومية لأن عمر حسابك أقل من 14 يومًا.',
-                        ephemeral: true
-                    });
-                }
-
-                const user =
-                    getUser(
-                        db,
-                        guildId,
-                        interaction.user.id
-                    );
-
-                const now =
-                    Date.now();
-
-                const cooldown =
-                    24 *
-                    60 *
-                    60 *
-                    1000;
-
-                if (
-                    now -
-                        user.lastDaily <
-                    cooldown
-                ) {
-                    const remaining =
-                        cooldown -
-                        (
-                            now -
-                            user.lastDaily
-                        );
-
-                    const hours =
-                        Math.floor(
-                            remaining /
-                            (
-                                60 *
-                                60 *
-                                1000
-                            )
-                        );
-
-                    const minutes =
-                        Math.floor(
-                            (
-                                remaining %
-                                (
-                                    60 *
-                                    60 *
-                                    1000
-                                )
-                            ) /
-                            (
-                                60 *
-                                1000
-                            )
-                        );
-
-                    return interaction.reply({
-                        content:
-                            `⏳ لقد استلمت مكافأتك مسبقاً. يمكنك الاستلام بعد **${hours} ساعة و ${minutes} دقيقة**.`,
-                        ephemeral: true
-                    });
-                }
-
-                const isPremium =
-                    interaction.member.roles.cache.has(
-                        PREMIUM_ROLE_ID
-                    );
-
-                const randomAmount =
-                    isPremium
-                        ? Math.floor(
-                            Math.random() * 2001
-                        ) + 3000
-                        : Math.floor(
-                            Math.random() * 301
-                        ) + 1700;
-
-                user.balance +=
-                    randomAmount;
-
-                user.lastDaily =
-                    now;
-
-                saveDB(db);
-
-                return interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor('#D4AC0D')
-                            .setDescription(
-                                isPremium
-                                    ? `🎁 **مكافأة عضو مميز**\n\nلقد حصلت على **${formatAmount(
-                                        randomAmount
-                                    )} 𝐎𝐏𝐬**`
-                                    : `🎁 لقد حصلت على **${formatAmount(
-                                        randomAmount
-                                    )} 𝐎𝐏𝐬** coin`
-                            )
-                    ]
-                });
-            }
-
-            if (interaction.commandName === 'top') {
-                let page =
-                    interaction.options.getInteger('page') || 1;
-
-                if (page < 1 || page > 5) {
-                    page = 1;
-                }
-
-                const sortedUsers =
-                    Object.entries(
-                        guildData.users
-                    )
-                        .filter(
-                            ([, data]) =>
-                                Number(data.balance) > 0
-                        )
-                        .sort(
-                            (a, b) =>
-                                Number(b[1].balance) -
-                                Number(a[1].balance)
-                        );
-
-                const start =
-                    (page - 1) * 10;
-
-                const pageUsers =
-                    sortedUsers.slice(
-                        start,
-                        start + 10
-                    );
-
-                let description = '';
-
-                pageUsers.forEach(
-                    (
-                        [uId, data],
-                        index
-                    ) => {
-                        description +=
-                            `#${start + index + 1} <@${uId}> — **${formatAmount(
-                                data.balance
-                            )} 𝐎𝐏𝐬**\n`;
-                    }
-                );
-
-                if (!description) {
-                    description =
-                        `الصفحة **${page}** فارغة.`;
-                }
-
-                return interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor('#D4AC0D')
-                            .setTitle(
-                                `قائمة التوب — الصفحة ${page}`
-                            )
-                            .setDescription(
-                                description
-                            )
-                    ]
-                });
+                return;
             }
 
             return;
