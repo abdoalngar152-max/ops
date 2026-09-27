@@ -1,11 +1,13 @@
 {
   "name": "economy-bot",
   "version": "1.0.0",
+  "type": "module",
   "main": "economy.js",
   "scripts": {
     "start": "node economy.js"
   },
   "dependencies": {
-    "discord.js": "^14.22.1"
+    "discord.js": "^14.22.1",
+    "dotenv": "^16.6.1"
   }
 }
