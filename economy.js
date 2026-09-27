@@ -265,26 +265,6 @@ function isAdmin(member) {
     );
 }
 
-function slashEconomyEnabled(db, guildId, channelId) {
-    const guildData = ensureGuild(db, guildId);
-
-    if (!guildData.economyChannelId) {
-        return {
-            enabled: false,
-            message: '❌ نظام العملة غير مفعّل في هذا السيرفر.'
-        };
-    }
-
-    if (guildData.economyChannelId !== channelId) {
-        return {
-            enabled: false,
-            message: `❌ نظام العملة يعمل فقط في <#${guildData.economyChannelId}>.`
-        };
-    }
-
-    return { enabled: true };
-}
-
 const pendingTransfers = new Map();
 const pendingRewards = new Map();
 
@@ -306,20 +286,11 @@ function cleanupPendingForGuild(guildId) {
     }
 }
 
-/*
-=========================================================
-أوامر السلاش الموجودة فقط:
- /currency enable
- /currency disable
-
-تم حذف:
- /give
- /withdraw
- /balance
- /daily
- /top
-=========================================================
-*/
+/* =========================================================
+   SLASH COMMANDS
+   فقط /currency enable
+   و /currency disable
+========================================================= */
 
 const slashCommands = [
     new SlashCommandBuilder()
@@ -341,20 +312,62 @@ async function registerSlashCommands() {
     try {
         const rest = new REST({ version: '10' }).setToken(TOKEN);
 
-        const commands = slashCommands.map(command =>
-            command.toJSON()
-        );
+        /*
+        حذف جميع أوامر السلاش القديمة Global
+        */
 
         await rest.put(
             Routes.applicationCommands(client.user.id),
             {
-                body: commands
+                body: []
             }
         );
 
-        console.log('✅ تم تسجيل أوامر السلاش فقط: تفعيل وتعطيل نظام العملة.');
+        /*
+        حذف جميع أوامر السلاش القديمة من كل السيرفرات
+        */
+
+        for (const guild of client.guilds.cache.values()) {
+            try {
+                await rest.put(
+                    Routes.applicationGuildCommands(
+                        client.user.id,
+                        guild.id
+                    ),
+                    {
+                        body: []
+                    }
+                );
+            } catch (error) {
+                console.error(
+                    `❌ تعذر حذف أوامر السلاش القديمة من السيرفر ${guild.id}:`,
+                    error
+                );
+            }
+        }
+
+        /*
+        تسجيل /currency فقط
+        */
+
+        await rest.put(
+            Routes.applicationCommands(client.user.id),
+            {
+                body: slashCommands.map(command =>
+                    command.toJSON()
+                )
+            }
+        );
+
+        console.log(
+            '✅ تم حذف أوامر السلاش القديمة وتسجيل /currency فقط.'
+        );
+
     } catch (error) {
-        console.error('❌ فشل تسجيل أوامر السلاش:', error);
+        console.error(
+            '❌ فشل تسجيل أوامر السلاش:',
+            error
+        );
     }
 }
 
@@ -601,18 +614,16 @@ client.on('messageCreate', async message => {
         if (!message.guild) return;
 
         const db = loadDB();
+
         const guildData =
             ensureGuild(
                 db,
                 message.guild.id
             );
 
-        /*
-        =========================================================
-        تفعيل روم / تعطيل روم
-        أوامر عادية بالكتابة
-        =========================================================
-        */
+        /* =========================================================
+           تفعيل روم
+        ========================================================= */
 
         if (content === 'تفعيل روم') {
             if (!isAdmin(message.member)) {
@@ -642,6 +653,10 @@ client.on('messageCreate', async message => {
                 ]
             });
         }
+
+        /* =========================================================
+           تعطيل روم
+        ========================================================= */
 
         if (content === 'تعطيل روم') {
             if (!isAdmin(message.member)) {
@@ -692,11 +707,9 @@ client.on('messageCreate', async message => {
                 userId
             );
 
-        /*
-        =========================================================
-        مكافأة - أمر كتابي فقط
-        =========================================================
-        */
+        /* =========================================================
+           مكافأة
+        ========================================================= */
 
         if (
             content === 'مكافاة' ||
@@ -822,11 +835,9 @@ client.on('messageCreate', async message => {
             });
         }
 
-        /*
-        =========================================================
-        رصيد - أمر كتابي فقط
-        =========================================================
-        */
+        /* =========================================================
+           رصيد
+        ========================================================= */
 
         if (
             content.toLowerCase() === '𝐎𝐏𝐬' ||
@@ -864,11 +875,9 @@ client.on('messageCreate', async message => {
             });
         }
 
-        /*
-        =========================================================
-        تحويل - أمر كتابي
-        =========================================================
-        */
+        /* =========================================================
+           تحويل
+        ========================================================= */
 
         if (content.startsWith('تحويل')) {
             const args =
@@ -993,11 +1002,9 @@ client.on('messageCreate', async message => {
             return;
         }
 
-        /*
-        =========================================================
-        توب - أمر كتابي فقط
-        =========================================================
-        */
+        /* =========================================================
+           توب
+        ========================================================= */
 
         if (
             content === 'توب' ||
@@ -1081,6 +1088,10 @@ client.on('messageCreate', async message => {
                 ]
             });
         }
+
+        /* =========================================================
+           معلومات
+        ========================================================= */
 
         if (
             content === 'معلومات' ||
@@ -1189,11 +1200,9 @@ client.on('messageCreate', async message => {
             });
         }
 
-        /*
-        =========================================================
-        اعطي - أمر كتابي فقط
-        =========================================================
-        */
+        /* =========================================================
+           اعطي
+        ========================================================= */
 
         if (content.startsWith('اعطي')) {
             if (!isAdmin(message.member)) {
@@ -1258,11 +1267,9 @@ client.on('messageCreate', async message => {
             });
         }
 
-        /*
-        =========================================================
-        سحب - أمر كتابي فقط
-        =========================================================
-        */
+        /* =========================================================
+           سحب
+        ========================================================= */
 
         if (content.startsWith('سحب')) {
             if (!isAdmin(message.member)) {
@@ -1376,13 +1383,11 @@ client.on('messageCreate', async message => {
 
 client.on('interactionCreate', async interaction => {
     try {
-        /*
-        =========================================================
-        أوامر السلاش الوحيدة:
-        /currency enable
-        /currency disable
-        =========================================================
-        */
+
+        /* =========================================================
+           SLASH
+           فقط /currency
+        ========================================================= */
 
         if (interaction.isChatInputCommand()) {
             const db =
@@ -1405,57 +1410,57 @@ client.on('interactionCreate', async interaction => {
                     guildId
                 );
 
-            if (interaction.commandName === 'currency') {
-                if (!isAdmin(interaction.member)) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر مخصص للإداريين فقط.',
-                        ephemeral: true
-                    });
-                }
-
-                const subcommand =
-                    interaction.options.getSubcommand();
-
-                if (subcommand === 'enable') {
-                    guildData.economyChannelId =
-                        interaction.channel.id;
-
-                    saveDB(db);
-
-                    return interaction.reply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor('#D4AC0D')
-                                .setDescription(
-                                    `✅ تم تفعيل نظام العملة في <#${interaction.channel.id}>.\n\n💾 تم حفظ التفعيل للسيرفر.`
-                                )
-                        ]
-                    });
-                }
-
-                if (subcommand === 'disable') {
-                    guildData.economyChannelId =
-                        null;
-
-                    cleanupPendingForGuild(
-                        guildId
-                    );
-
-                    saveDB(db);
-
-                    return interaction.reply({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor('#D4AC0D')
-                                .setDescription(
-                                    '✅ تم تعطيل نظام العملة في هذا السيرفر.'
-                                )
-                        ]
-                    });
-                }
-
+            if (interaction.commandName !== 'currency') {
                 return;
+            }
+
+            if (!isAdmin(interaction.member)) {
+                return interaction.reply({
+                    content:
+                        '❌ هذا الأمر مخصص للإداريين فقط.',
+                    ephemeral: true
+                });
+            }
+
+            const subcommand =
+                interaction.options.getSubcommand();
+
+            if (subcommand === 'enable') {
+                guildData.economyChannelId =
+                    interaction.channel.id;
+
+                saveDB(db);
+
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#D4AC0D')
+                            .setDescription(
+                                `✅ تم تفعيل نظام العملة في <#${interaction.channel.id}>.\n\n💾 تم حفظ التفعيل للسيرفر.`
+                            )
+                    ]
+                });
+            }
+
+            if (subcommand === 'disable') {
+                guildData.economyChannelId =
+                    null;
+
+                cleanupPendingForGuild(
+                    guildId
+                );
+
+                saveDB(db);
+
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#D4AC0D')
+                            .setDescription(
+                                '✅ تم تعطيل نظام العملة في هذا السيرفر.'
+                            )
+                    ]
+                });
             }
 
             return;
