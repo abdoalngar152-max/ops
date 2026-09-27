@@ -5,9 +5,6 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle,
     PermissionFlagsBits,
     SlashCommandBuilder,
     REST,
@@ -25,7 +22,6 @@ const __dirname = path.dirname(__filename);
 const TOKEN = String(process.env.DISCORD_TOKEN || '').trim();
 
 const PREMIUM_ROLE_ID = '1544858160982917261';
-const MASS_SUMMON_ROLE_ID = '1546263383526088805';
 
 const DB_FILE = path.join(__dirname, 'economy.json');
 const DB_BACKUP_FILE = path.join(__dirname, 'economy.backup.json');
@@ -114,10 +110,6 @@ function loadDB() {
 
         data.version = 3;
 
-        /*
-        التأكد من أن كل سيرفر له هيكل مستقل وصحيح
-        */
-
         for (const guildId of Object.keys(data.guilds)) {
             const guildData = data.guilds[guildId];
 
@@ -147,10 +139,6 @@ function loadDB() {
                 guildData.users = {};
             }
 
-            /*
-            التأكد من سلامة أرصدة أعضاء هذا السيرفر فقط
-            */
-
             for (const userId of Object.keys(guildData.users)) {
                 const user = guildData.users[userId];
 
@@ -164,8 +152,7 @@ function loadDB() {
                 }
 
                 if (typeof user.balance !== 'number') {
-                    user.balance =
-                        Number(user.balance) || 0;
+                    user.balance = Number(user.balance) || 0;
                 }
 
                 if (!Number.isFinite(user.balance)) {
@@ -177,8 +164,7 @@ function loadDB() {
                 }
 
                 if (typeof user.lastDaily !== 'number') {
-                    user.lastDaily =
-                        Number(user.lastDaily) || 0;
+                    user.lastDaily = Number(user.lastDaily) || 0;
                 }
 
                 if (!Number.isFinite(user.lastDaily)) {
@@ -194,10 +180,6 @@ function loadDB() {
             '❌ تعذر تحميل قاعدة البيانات:',
             error
         );
-
-        /*
-        محاولة استرجاع النسخة الاحتياطية
-        */
 
         try {
             if (fs.existsSync(DB_BACKUP_FILE)) {
@@ -276,19 +258,11 @@ function saveDB(data) {
                 2
             );
 
-        /*
-        الكتابة في ملف مؤقت أولاً
-        */
-
         fs.writeFileSync(
             DB_TEMP_FILE,
             json,
             'utf8'
         );
-
-        /*
-        حفظ نسخة احتياطية من البيانات الحالية
-        */
 
         if (fs.existsSync(DB_FILE)) {
             fs.copyFileSync(
@@ -296,10 +270,6 @@ function saveDB(data) {
                 DB_BACKUP_FILE
             );
         }
-
-        /*
-        استبدال الملف القديم بالملف الجديد
-        */
 
         fs.renameSync(
             DB_TEMP_FILE,
@@ -321,10 +291,6 @@ function saveDB(data) {
                 );
             }
         } catch {}
-
-        /*
-        محاولة استرجاع الملف الأساسي
-        */
 
         try {
             if (
@@ -380,13 +346,6 @@ function ensureGuild(db, guildId) {
 }
 
 function ensureUser(db, guildId, userId) {
-    /*
-    مهم:
-    المستخدم محفوظ داخل guildId
-    لذلك نفس الشخص يمكن أن يكون له رصيد مختلف
-    في كل سيرفر.
-    */
-
     const guildData =
         ensureGuild(
             db,
@@ -567,9 +526,6 @@ function isAdmin(member) {
 const pendingTransfers =
     new Map();
 
-const pendingRewards =
-    new Map();
-
 function transferKey(
     guildId,
     userId
@@ -589,20 +545,6 @@ function cleanupPendingForGuild(
             guildId
         ) {
             pendingTransfers.delete(
-                key
-            );
-        }
-    }
-
-    for (
-        const [key, value]
-        of pendingRewards.entries()
-    ) {
-        if (
-            value.guildId ===
-            guildId
-        ) {
-            pendingRewards.delete(
                 key
             );
         }
@@ -644,10 +586,6 @@ async function registerSlashCommands() {
                 TOKEN
             );
 
-        /*
-        حذف جميع أوامر السلاش القديمة Global
-        */
-
         await rest.put(
             Routes.applicationCommands(
                 client.user.id
@@ -656,10 +594,6 @@ async function registerSlashCommands() {
                 body: []
             }
         );
-
-        /*
-        حذف جميع أوامر السلاش القديمة من كل السيرفرات
-        */
 
         for (
             const guild
@@ -683,10 +617,6 @@ async function registerSlashCommands() {
             }
         }
 
-        /*
-        تسجيل /currency فقط
-        */
-
         await rest.put(
             Routes.applicationCommands(
                 client.user.id
@@ -701,7 +631,7 @@ async function registerSlashCommands() {
         );
 
         console.log(
-            '✅ تم حذف أوامر السلاش القديمة وتسجيل /currency فقط.'
+            '✅ تم تسجيل /currency فقط.'
         );
 
     } catch (error) {
@@ -731,11 +661,6 @@ client.once(
             '======================================'
         );
 
-        /*
-        تحميل قاعدة البيانات مرة عند التشغيل
-        والتأكد من وجود بيانات مستقلة لكل سيرفر
-        */
-
         const db =
             loadDB();
 
@@ -748,10 +673,6 @@ client.once(
                 guild.id
             );
         }
-
-        /*
-        حفظ البيانات بعد التأكد منها
-        */
 
         saveDB(db);
 
@@ -841,237 +762,12 @@ client.on(
             const content =
                 message.content.trim();
 
-            /* =====================================================
-               استدعاء
-            ===================================================== */
-
-            if (
-                message.guild &&
-                content.startsWith(
-                    'استدعاء'
-                )
-            ) {
-                if (
-                    !message.member.permissions.has(
-                        PermissionFlagsBits.Administrator
-                    )
-                ) {
-                    return;
-                }
-
-                const targetUser =
-                    message.mentions.users.first();
-
-                if (!targetUser) {
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    '❌ الاستخدام الصحيح:\n`استدعاء @العضو`'
-                                )
-                        ]
-                    });
-                }
-
-                const targetMember =
-                    await message.guild.members
-                        .fetch(
-                            targetUser.id
-                        )
-                        .catch(
-                            () => null
-                        );
-
-                if (!targetMember) {
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    '❌ العضو غير موجود في السيرفر.'
-                                )
-                        ]
-                    });
-                }
-
-                if (targetMember.user.bot) {
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    '❌ لا يمكنك استدعاء بوت.'
-                                )
-                        ]
-                    });
-                }
-
-                const embed =
-                    new EmbedBuilder()
-                        .setColor(
-                            '#D4AC0D'
-                        )
-                        .setTitle(
-                            '📢 نظام الاستدعاء'
-                        )
-                        .setDescription(
-                            `اضغط على الزر أدناه لإرسال استدعاء إلى ${targetMember}.`
-                        )
-                        .setFooter({
-                            text:
-                                message.guild.name
-                        });
-
-                const row =
-                    new ActionRowBuilder()
-                        .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId(
-                                    `summon_open_${message.author.id}_${targetMember.id}`
-                                )
-                                .setLabel(
-                                    'استدعاء العضو'
-                                )
-                                .setEmoji(
-                                    '📢'
-                                )
-                                .setStyle(
-                                    ButtonStyle.Secondary
-                                )
-                        );
-
-                return message.channel.send({
-                    embeds: [
-                        embed
-                    ],
-                    components: [
-                        row
-                    ]
-                });
-            }
-
-            /* =====================================================
-               شعار تسليم
-            ===================================================== */
-
-            if (
-                message.guild &&
-                content === 'شعار تسليم'
-            ) {
-                if (
-                    !message.member.permissions.has(
-                        PermissionFlagsBits.Administrator
-                    )
-                ) {
-                    return;
-                }
-
-                return message.channel.send({
-                    content:
-                        '📨 اضغط على الزر أدناه لإكمال شعار التسليم.',
-                    components: [
-                        new ActionRowBuilder()
-                            .addComponents(
-                                new ButtonBuilder()
-                                    .setCustomId(
-                                        `delivery_open_${message.author.id}`
-                                    )
-                                    .setLabel(
-                                        'شعار تسليم'
-                                    )
-                                    .setEmoji(
-                                        '📨'
-                                    )
-                                    .setStyle(
-                                        ButtonStyle.Secondary
-                                    )
-                            )
-                    ]
-                });
-            }
-
-            /* =====================================================
-               شعار كل
-            ===================================================== */
-
-            if (
-                message.guild &&
-                (
-                    content ===
-                        'شعار كل' ||
-                    content.toLowerCase() ===
-                        'شعار all' ||
-                    content ===
-                        'شعار كامل'
-                )
-            ) {
-                if (
-                    !message.member.roles.cache.has(
-                        MASS_SUMMON_ROLE_ID
-                    )
-                ) {
-                    return;
-                }
-
-                const embed =
-                    new EmbedBuilder()
-                        .setColor(
-                            '#D4AC0D'
-                        )
-                        .setTitle(
-                            '📩 إشعار استدعاء'
-                        )
-                        .setDescription(
-                            'اضغط على الزر أدناه لإرسال إشعار استدعاء إلى جميع أعضاء السيرفر.'
-                        )
-                        .setTimestamp();
-
-                const row =
-                    new ActionRowBuilder()
-                        .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId(
-                                    `mass_summon_open_${message.author.id}_${message.guild.id}`
-                                )
-                                .setLabel(
-                                    'إشعار استدعاء'
-                                )
-                                .setEmoji(
-                                    '📩'
-                                )
-                                .setStyle(
-                                    ButtonStyle.Secondary
-                                )
-                        );
-
-                return message.channel.send({
-                    embeds: [
-                        embed
-                    ],
-                    components: [
-                        row
-                    ]
-                });
-            }
-
             if (!message.guild) {
                 return;
             }
 
             const db =
                 loadDB();
-
-            /*
-            مهم جداً:
-            نستخدم Guild ID دائماً للوصول للبيانات.
-            */
 
             const guildData =
                 ensureGuild(
@@ -1107,10 +803,6 @@ client.on(
 
                 guildData.economyChannelId =
                     message.channel.id;
-
-                /*
-                حفظ إعداد الروم لهذا السيرفر فقط
-                */
 
                 saveDB(db);
 
@@ -1160,10 +852,6 @@ client.on(
                     message.guild.id
                 );
 
-                /*
-                حفظ تعطيل الروم لهذا السيرفر فقط
-                */
-
                 saveDB(db);
 
                 return message.channel.send({
@@ -1180,8 +868,8 @@ client.on(
             }
 
             /*
-            كل أوامر الاقتصاد تعمل فقط في الروم المحفوظ
-            لهذا السيرفر.
+            أوامر الاقتصاد تعمل فقط في الروم
+            المفعل لهذا السيرفر.
             */
 
             if (
@@ -1194,11 +882,6 @@ client.on(
 
             const userId =
                 message.author.id;
-
-            /*
-            الرصيد مربوط بـ:
-            guildId + userId
-            */
 
             const user =
                 getUser(
@@ -1327,10 +1010,6 @@ client.on(
                 user.lastDaily =
                     now;
 
-                /*
-                حفظ الرصيد الجديد
-                */
-
                 saveDB(db);
 
                 return message.channel.send({
@@ -1353,7 +1032,7 @@ client.on(
             }
 
             /* =====================================================
-               رصيد
+               رصيد / OPS
             ===================================================== */
 
             if (
@@ -1376,10 +1055,6 @@ client.on(
                 const targetMember =
                     message.mentions.members.first() ||
                     message.member;
-
-                /*
-                جلب رصيد العضو من نفس السيرفر فقط
-                */
 
                 const targetUser =
                     getUser(
@@ -1483,8 +1158,7 @@ client.on(
                 ) {
                     amount =
                         Math.floor(
-                            currentBalance /
-                                2
+                            currentBalance / 2
                         );
                 } else {
                     amount =
@@ -1618,10 +1292,6 @@ client.on(
                     });
                 }
 
-                /*
-                التوب يتم حسابه من users الخاصة بهذا السيرفر فقط
-                */
-
                 const sortedUsers =
                     Object.entries(
                         guildData.users
@@ -1683,355 +1353,6 @@ client.on(
                             )
                             .setDescription(
                                 description
-                            )
-                    ]
-                });
-            }
-
-            /* =====================================================
-               معلومات
-            ===================================================== */
-
-            if (
-                content ===
-                    'معلومات' ||
-                content ===
-                    'المعلومات'
-            ) {
-                const targetMember =
-                    message.mentions.members.first() ||
-                    message.member;
-
-                const targetUser =
-                    getUser(
-                        db,
-                        message.guild.id,
-                        targetMember.id
-                    );
-
-                let lastTimeText =
-                    'لم يستلم أبداً';
-
-                let nextTimeText =
-                    'متاح الآن';
-
-                if (
-                    targetUser.lastDaily >
-                    0
-                ) {
-                    const lastDate =
-                        new Date(
-                            targetUser.lastDaily
-                        );
-
-                    lastTimeText =
-                        lastDate.toLocaleString();
-
-                    const nextTime =
-                        targetUser.lastDaily +
-                        24 *
-                            60 *
-                            60 *
-                            1000;
-
-                    if (
-                        Date.now() <
-                        nextTime
-                    ) {
-                        const diff =
-                            nextTime -
-                            Date.now();
-
-                        const h =
-                            Math.floor(
-                                diff /
-                                    (
-                                        60 *
-                                        60 *
-                                        1000
-                                    )
-                            );
-
-                        const m =
-                            Math.floor(
-                                (
-                                    diff %
-                                    (
-                                        60 *
-                                        60 *
-                                        1000
-                                    )
-                                ) /
-                                    (
-                                        60 *
-                                        1000
-                                    )
-                            );
-
-                        nextTimeText =
-                            `${h} ساعة و ${m} دقيقة`;
-                    }
-                }
-
-                return message.channel.send({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor(
-                                '#D4AC0D'
-                            )
-                            .setTitle(
-                                'معلومات حسابك'
-                            )
-                            .addFields(
-                                {
-                                    name:
-                                        'العضو',
-                                    value:
-                                        `${targetMember}`
-                                },
-                                {
-                                    name:
-                                        'رصيدك',
-                                    value:
-                                        `𝐎𝐏𝐬 ${formatAmount(
-                                            targetUser.balance
-                                        )}`
-                                },
-                                {
-                                    name:
-                                        'آخر مكافأة حصلت عليها',
-                                    value:
-                                        lastTimeText
-                                },
-                                {
-                                    name:
-                                        'موعد المكافأة القادمة',
-                                    value:
-                                        nextTimeText
-                                }
-                            )
-                    ]
-                });
-            }
-
-            /* =====================================================
-               اعطي
-            ===================================================== */
-
-            if (
-                content.startsWith(
-                    'اعطي'
-                )
-            ) {
-                if (
-                    !isAdmin(
-                        message.member
-                    )
-                ) {
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    '❌ هذا الأمر مخصص للإداريين فقط.'
-                                )
-                        ]
-                    });
-                }
-
-                const args =
-                    content.split(
-                        /\s+/
-                    );
-
-                const targetMember =
-                    message.mentions.members.first();
-
-                const amount =
-                    parseAmount(
-                        args[2]
-                    );
-
-                if (
-                    !targetMember ||
-                    isNaN(amount) ||
-                    amount <= 0
-                ) {
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    '❌ الاستخدام الصحيح: `اعطي @العضو المبلغ`\nمثال: `اعطي @العضو 20k`'
-                                )
-                        ]
-                    });
-                }
-
-                /*
-                الرصيد يضاف لهذا العضو داخل هذا السيرفر فقط
-                */
-
-                const targetUser =
-                    getUser(
-                        db,
-                        message.guild.id,
-                        targetMember.id
-                    );
-
-                targetUser.balance +=
-                    amount;
-
-                saveDB(db);
-
-                return message.channel.send({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor(
-                                '#D4AC0D'
-                            )
-                            .setDescription(
-                                `✅ تم إضافة **${formatAmount(
-                                    amount
-                                )} 𝐎𝐏𝐬** إلى رصيد العضو ${targetMember}`
-                            )
-                    ]
-                });
-            }
-
-            /* =====================================================
-               سحب
-            ===================================================== */
-
-            if (
-                content.startsWith(
-                    'سحب'
-                )
-            ) {
-                if (
-                    !isAdmin(
-                        message.member
-                    )
-                ) {
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    '❌ هذا الأمر مخصص للإداريين فقط.'
-                                )
-                        ]
-                    });
-                }
-
-                const args =
-                    content.split(
-                        /\s+/
-                    );
-
-                const targetMember =
-                    message.mentions.members.first();
-
-                const argValue =
-                    args[2]
-                        ? args[2].toLowerCase()
-                        : '';
-
-                if (
-                    !targetMember ||
-                    !argValue
-                ) {
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    '❌ الاستخدام الصحيح: `سحب @العضو المبلغ` أو `سحب @العضو نص` أو `سحب @العضو كامل`'
-                                )
-                        ]
-                    });
-                }
-
-                const targetUser =
-                    getUser(
-                        db,
-                        message.guild.id,
-                        targetMember.id
-                    );
-
-                const balance =
-                    Number(
-                        targetUser.balance
-                    ) || 0;
-
-                let amount = 0;
-
-                if (
-                    argValue ===
-                    'كامل'
-                ) {
-                    amount =
-                        balance;
-                } else if (
-                    argValue ===
-                    'نص'
-                ) {
-                    amount =
-                        Math.floor(
-                            balance /
-                                2
-                        );
-                } else {
-                    amount =
-                        parseAmount(
-                            argValue
-                        );
-                }
-
-                if (
-                    isNaN(amount) ||
-                    amount <= 0
-                ) {
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    '❌ يرجى كتابة مبلغ صالح أو كلمة (نص) أو (كامل).\n\nالاختصارات المدعومة: `k` `m` `b` `t`'
-                                )
-                        ]
-                    });
-                }
-
-                targetUser.balance =
-                    Math.max(
-                        0,
-                        balance -
-                            amount
-                    );
-
-                saveDB(db);
-
-                return message.channel.send({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor(
-                                '#D4AC0D'
-                            )
-                            .setDescription(
-                                `✅ تم سحب **${formatAmount(
-                                    amount
-                                )} 𝐎𝐏𝐬** من رصيد العضو ${targetMember}`
                             )
                     ]
                 });
@@ -2113,10 +1434,6 @@ client.on(
                     guildData.economyChannelId =
                         interaction.channel.id;
 
-                    /*
-                    حفظ الروم لهذا السيرفر فقط
-                    */
-
                     saveDB(db);
 
                     return interaction.reply({
@@ -2162,986 +1479,6 @@ client.on(
             }
 
             /* =====================================================
-               DELIVERY OPEN
-            ===================================================== */
-
-            if (
-                interaction.isButton() &&
-                interaction.customId.startsWith(
-                    'delivery_open_'
-                )
-            ) {
-                const adminId =
-                    interaction.customId.split(
-                        '_'
-                    )[2];
-
-                if (
-                    interaction.user.id !==
-                    adminId
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الزر ليس مخصصاً لك.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                if (
-                    !isAdmin(
-                        interaction.member
-                    )
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر مخصص للإداريين فقط.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const modal =
-                    new ModalBuilder()
-                        .setCustomId(
-                            `delivery_modal_${adminId}`
-                        )
-                        .setTitle(
-                            '📨 شعار تسليم'
-                        );
-
-                const memberInput =
-                    new TextInputBuilder()
-                        .setCustomId(
-                            'delivery_member_id'
-                        )
-                        .setLabel(
-                            'ايدي العضو'
-                        )
-                        .setPlaceholder(
-                            'اكتب ايدي العضو هنا...'
-                        )
-                        .setStyle(
-                            TextInputStyle.Short
-                        )
-                        .setRequired(
-                            true
-                        )
-                        .setMaxLength(
-                            25
-                        );
-
-                const amountInput =
-                    new TextInputBuilder()
-                        .setCustomId(
-                            'delivery_amount'
-                        )
-                        .setLabel(
-                            'المبلغ'
-                        )
-                        .setPlaceholder(
-                            'مثال: 20k أو 2m'
-                        )
-                        .setStyle(
-                            TextInputStyle.Short
-                        )
-                        .setRequired(
-                            true
-                        )
-                        .setMaxLength(
-                            30
-                        );
-
-                const reasonInput =
-                    new TextInputBuilder()
-                        .setCustomId(
-                            'delivery_reason'
-                        )
-                        .setLabel(
-                            'السبب'
-                        )
-                        .setPlaceholder(
-                            'اكتب سبب التسليم هنا...'
-                        )
-                        .setStyle(
-                            TextInputStyle.Paragraph
-                        )
-                        .setRequired(
-                            true
-                        )
-                        .setMaxLength(
-                            1000
-                        );
-
-                modal.addComponents(
-                    new ActionRowBuilder()
-                        .addComponents(
-                            memberInput
-                        ),
-                    new ActionRowBuilder()
-                        .addComponents(
-                            amountInput
-                        ),
-                    new ActionRowBuilder()
-                        .addComponents(
-                            reasonInput
-                        )
-                );
-
-                return interaction.showModal(
-                    modal
-                );
-            }
-
-            /* =====================================================
-               DELIVERY MODAL
-            ===================================================== */
-
-            if (
-                interaction.isModalSubmit() &&
-                interaction.customId.startsWith(
-                    'delivery_modal_'
-                )
-            ) {
-                const adminId =
-                    interaction.customId.split(
-                        '_'
-                    )[2];
-
-                if (
-                    interaction.user.id !==
-                    adminId
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الطلب ليس مخصصاً لك.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                if (
-                    !isAdmin(
-                        interaction.member
-                    )
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر مخصص للإداريين فقط.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const memberId =
-                    interaction.fields
-                        .getTextInputValue(
-                            'delivery_member_id'
-                        )
-                        .trim();
-
-                const amountText =
-                    interaction.fields
-                        .getTextInputValue(
-                            'delivery_amount'
-                        )
-                        .trim();
-
-                const reason =
-                    interaction.fields
-                        .getTextInputValue(
-                            'delivery_reason'
-                        )
-                        .trim();
-
-                if (
-                    !/^\d{17,20}$/.test(
-                        memberId
-                    )
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ ايدي العضو غير صحيح.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const amount =
-                    parseAmount(
-                        amountText
-                    );
-
-                if (
-                    isNaN(amount) ||
-                    amount <= 0
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ المبلغ غير صحيح.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const targetMember =
-                    await interaction.guild.members
-                        .fetch(
-                            memberId
-                        )
-                        .catch(
-                            () => null
-                        );
-
-                if (!targetMember) {
-                    return interaction.reply({
-                        content:
-                            '❌ العضو غير موجود في السيرفر.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const rewardId =
-                    `${interaction.guild.id}_${interaction.user.id}_${targetMember.id}_${Date.now()}_${Math.floor(
-                        Math.random() * 100000
-                    )}`;
-
-                pendingRewards.set(
-                    rewardId,
-                    {
-                        targetId:
-                            targetMember.id,
-                        amount,
-                        reason,
-                        guildId:
-                            interaction.guild.id
-                    }
-                );
-
-                const rewardEmbed =
-                    new EmbedBuilder()
-                        .setColor(
-                            '#D4AC0D'
-                        )
-                        .setTitle(
-                            '📨 إشعار استلام مكافأة'
-                        )
-                        .addFields(
-                            {
-                                name:
-                                    'المبلغ',
-                                value:
-                                    `**${formatAmount(
-                                        amount
-                                    )} 𝐎𝐏𝐬**`
-                            },
-                            {
-                                name:
-                                    'السبب',
-                                value:
-                                    reason
-                            }
-                        )
-                        .setTimestamp();
-
-                const row =
-                    new ActionRowBuilder()
-                        .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId(
-                                    `reward_receive_${rewardId}`
-                                )
-                                .setLabel(
-                                    'استلام المكافأة'
-                                )
-                                .setEmoji(
-                                    '📩'
-                                )
-                                .setStyle(
-                                    ButtonStyle.Secondary
-                                )
-                        );
-
-                try {
-                    await targetMember.send({
-                        embeds: [
-                            rewardEmbed
-                        ],
-                        components: [
-                            row
-                        ]
-                    });
-
-                    return interaction.reply({
-                        content:
-                            `✅ تم إرسال شعار التسليم إلى ${targetMember}.`,
-                        ephemeral:
-                            true
-                    });
-
-                } catch {
-                    pendingRewards.delete(
-                        rewardId
-                    );
-
-                    return interaction.reply({
-                        content:
-                            '❌ تعذر إرسال شعار التسليم في الخاص للعضو.',
-                        ephemeral:
-                            true
-                    });
-                }
-            }
-
-            /* =====================================================
-               REQUEST STATUS
-            ===================================================== */
-
-            if (
-                interaction.isButton() &&
-                (
-                    interaction.customId.startsWith(
-                        'request_status_delivered_'
-                    ) ||
-                    interaction.customId.startsWith(
-                        'request_status_not_delivered_'
-                    )
-                )
-            ) {
-                return interaction.reply({
-                    content:
-                        '❌ نظام الطلبات تم إزالته.',
-                    ephemeral:
-                        true
-                });
-            }
-
-            /* =====================================================
-               REWARD RECEIVE
-            ===================================================== */
-
-            if (
-                interaction.isButton() &&
-                interaction.customId.startsWith(
-                    'reward_receive_'
-                )
-            ) {
-                const rewardId =
-                    interaction.customId.replace(
-                        'reward_receive_',
-                        ''
-                    );
-
-                const reward =
-                    pendingRewards.get(
-                        rewardId
-                    );
-
-                if (!reward) {
-                    return interaction.reply({
-                        content:
-                            '❌ إشعار المكافأة انتهى أو تم استلامه مسبقاً.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                if (
-                    interaction.user.id !==
-                    reward.targetId
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الإشعار ليس مخصصاً لك.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const db =
-                    loadDB();
-
-                /*
-                إضافة المكافأة داخل السيرفر الذي
-                أنشأ المكافأة فقط
-                */
-
-                const user =
-                    getUser(
-                        db,
-                        reward.guildId,
-                        reward.targetId
-                    );
-
-                user.balance +=
-                    reward.amount;
-
-                /*
-                حفظ الرصيد
-                */
-
-                saveDB(db);
-
-                pendingRewards.delete(
-                    rewardId
-                );
-
-                const receivedEmbed =
-                    new EmbedBuilder()
-                        .setColor(
-                            '#D4AC0D'
-                        )
-                        .setTitle(
-                            '📨 تم استلام المكافأة'
-                        )
-                        .setDescription(
-                            `تمت إضافة **${formatAmount(
-                                reward.amount
-                            )} 𝐎𝐏𝐬** إلى رصيدك بنجاح.\n\n**السبب :** ${reward.reason}\n**رصيدك الحالي :** ${formatAmount(
-                                user.balance
-                            )} 𝐎𝐏𝐬`
-                        )
-                        .setTimestamp();
-
-                return interaction.update({
-                    embeds: [
-                        receivedEmbed
-                    ],
-                    components: [
-                        new ActionRowBuilder()
-                            .addComponents(
-                                new ButtonBuilder()
-                                    .setCustomId(
-                                        `reward_received_${rewardId}`
-                                    )
-                                    .setLabel(
-                                        'تم استلام المكافأة'
-                                    )
-                                    .setEmoji(
-                                        '✅'
-                                    )
-                                    .setStyle(
-                                        ButtonStyle.Secondary
-                                    )
-                                    .setDisabled(
-                                        true
-                                    )
-                            )
-                    ]
-                });
-            }
-
-            /* =====================================================
-               SUMMON OPEN
-            ===================================================== */
-
-            if (
-                interaction.isButton() &&
-                interaction.customId.startsWith(
-                    'summon_open_'
-                )
-            ) {
-                const parts =
-                    interaction.customId.split(
-                        '_'
-                    );
-
-                const adminId =
-                    parts[2];
-
-                const targetId =
-                    parts[3];
-
-                if (
-                    interaction.user.id !==
-                    adminId
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الزر ليس مخصصاً لك.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                if (
-                    !isAdmin(
-                        interaction.member
-                    )
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر مخصص للإداريين فقط.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const modal =
-                    new ModalBuilder()
-                        .setCustomId(
-                            `summon_modal_${adminId}_${targetId}`
-                        )
-                        .setTitle(
-                            '📩 إشعار استدعاء'
-                        );
-
-                const destinationInput =
-                    new TextInputBuilder()
-                        .setCustomId(
-                            'summon_destination'
-                        )
-                        .setLabel(
-                            'التوجه'
-                        )
-                        .setPlaceholder(
-                            'اكتب ايدي الروم أو لينك الروم هنا...'
-                        )
-                        .setStyle(
-                            TextInputStyle.Short
-                        )
-                        .setRequired(
-                            true
-                        )
-                        .setMaxLength(
-                            200
-                        );
-
-                const reasonInput =
-                    new TextInputBuilder()
-                        .setCustomId(
-                            'summon_reason'
-                        )
-                        .setLabel(
-                            'السبب'
-                        )
-                        .setPlaceholder(
-                            'اكتب سبب الاستدعاء هنا...'
-                        )
-                        .setStyle(
-                            TextInputStyle.Paragraph
-                        )
-                        .setRequired(
-                            true
-                        )
-                        .setMaxLength(
-                            1000
-                        );
-
-                modal.addComponents(
-                    new ActionRowBuilder()
-                        .addComponents(
-                            destinationInput
-                        ),
-                    new ActionRowBuilder()
-                        .addComponents(
-                            reasonInput
-                        )
-                );
-
-                return interaction.showModal(
-                    modal
-                );
-            }
-
-            /* =====================================================
-               SUMMON MODAL
-            ===================================================== */
-
-            if (
-                interaction.isModalSubmit() &&
-                interaction.customId.startsWith(
-                    'summon_modal_'
-                )
-            ) {
-                const parts =
-                    interaction.customId.split(
-                        '_'
-                    );
-
-                const adminId =
-                    parts[2];
-
-                const targetId =
-                    parts[3];
-
-                if (
-                    interaction.user.id !==
-                    adminId
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الاستدعاء ليس مخصصاً لك.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                if (
-                    !isAdmin(
-                        interaction.member
-                    )
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر مخصص للإداريين فقط.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const destination =
-                    interaction.fields
-                        .getTextInputValue(
-                            'summon_destination'
-                        )
-                        .trim();
-
-                const reason =
-                    interaction.fields
-                        .getTextInputValue(
-                            'summon_reason'
-                        )
-                        .trim();
-
-                const validChannelId =
-                    /^\d{17,20}$/.test(
-                        destination
-                    );
-
-                const validChannelLink =
-                    /^https?:\/\/(?:www\.)?discord(?:app)?\.com\/channels\/\d+\/\d+(?:\/\d+)?$/i.test(
-                        destination
-                    );
-
-                if (
-                    !validChannelId &&
-                    !validChannelLink
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ التوجه يجب أن يكون ايدي روم صحيح أو لينك روم صحيح.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const targetMember =
-                    await interaction.guild.members
-                        .fetch(
-                            targetId
-                        )
-                        .catch(
-                            () => null
-                        );
-
-                if (!targetMember) {
-                    return interaction.reply({
-                        content:
-                            '❌ العضو غير موجود في السيرفر.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                let destinationText =
-                    destination;
-
-                if (
-                    validChannelId
-                ) {
-                    destinationText =
-                        `<#${destination}>`;
-                }
-
-                const summonEmbed =
-                    new EmbedBuilder()
-                        .setColor(
-                            '#D4AC0D'
-                        )
-                        .setTitle(
-                            '📩 إشعار استدعاء'
-                        )
-                        .addFields(
-                            {
-                                name:
-                                    '🌐 السيرفر',
-                                value:
-                                    `**${interaction.guild.name}**`
-                            },
-                            {
-                                name:
-                                    '📍 التوجه',
-                                value:
-                                    destinationText
-                            },
-                            {
-                                name:
-                                    '📌 السبب',
-                                value:
-                                    reason
-                            }
-                        )
-                        .setFooter({
-                            text:
-                                'نظام الاستدعاء'
-                        })
-                        .setTimestamp();
-
-                try {
-                    await targetMember.send({
-                        embeds: [
-                            summonEmbed
-                        ]
-                    });
-
-                    return interaction.reply({
-                        content:
-                            `✅ تم إرسال إشعار الاستدعاء إلى ${targetMember}.`,
-                        ephemeral:
-                            true
-                    });
-
-                } catch {
-                    return interaction.reply({
-                        content:
-                            '❌ تعذر إرسال الاستدعاء في الخاص. قد تكون رسائل الخاص مغلقة لدى العضو.',
-                        ephemeral:
-                            true
-                    });
-                }
-            }
-
-            /* =====================================================
-               MASS SUMMON OPEN
-            ===================================================== */
-
-            if (
-                interaction.isButton() &&
-                interaction.customId.startsWith(
-                    'mass_summon_open_'
-                )
-            ) {
-                const parts =
-                    interaction.customId.split(
-                        '_'
-                    );
-
-                const adminId =
-                    parts[3];
-
-                if (
-                    interaction.user.id !==
-                    adminId
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الزر ليس مخصصاً لك.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                if (
-                    !interaction.member.roles.cache.has(
-                        MASS_SUMMON_ROLE_ID
-                    )
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ هذا الأمر ليس متاحاً لك.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                const modal =
-                    new ModalBuilder()
-                        .setCustomId(
-                            `mass_summon_modal_${interaction.guild.id}`
-                        )
-                        .setTitle(
-                            '📩 إشعار استدعاء'
-                        );
-
-                const destinationInput =
-                    new TextInputBuilder()
-                        .setCustomId(
-                            'mass_summon_destination'
-                        )
-                        .setLabel(
-                            'التوجه'
-                        )
-                        .setPlaceholder(
-                            'اكتب ايدي الروم أو لينك الروم هنا...'
-                        )
-                        .setStyle(
-                            TextInputStyle.Short
-                        )
-                        .setRequired(
-                            true
-                        )
-                        .setMaxLength(
-                            200
-                        );
-
-                const reasonInput =
-                    new TextInputBuilder()
-                        .setCustomId(
-                            'mass_summon_reason'
-                        )
-                        .setLabel(
-                            'السبب'
-                        )
-                        .setPlaceholder(
-                            'اكتب سبب الاستدعاء هنا...'
-                        )
-                        .setStyle(
-                            TextInputStyle.Paragraph
-                        )
-                        .setRequired(
-                            true
-                        )
-                        .setMaxLength(
-                            1000
-                        );
-
-                modal.addComponents(
-                    new ActionRowBuilder()
-                        .addComponents(
-                            destinationInput
-                        ),
-                    new ActionRowBuilder()
-                        .addComponents(
-                            reasonInput
-                        )
-                );
-
-                return interaction.showModal(
-                    modal
-                );
-            }
-
-            /* =====================================================
-               MASS SUMMON MODAL
-            ===================================================== */
-
-            if (
-                interaction.isModalSubmit() &&
-                interaction.customId.startsWith(
-                    'mass_summon_modal_'
-                )
-            ) {
-                const destination =
-                    interaction.fields
-                        .getTextInputValue(
-                            'mass_summon_destination'
-                        )
-                        .trim();
-
-                const reason =
-                    interaction.fields
-                        .getTextInputValue(
-                            'mass_summon_reason'
-                        )
-                        .trim();
-
-                const validChannelId =
-                    /^\d{17,20}$/.test(
-                        destination
-                    );
-
-                const validChannelLink =
-                    /^https?:\/\/(?:www\.)?discord(?:app)?\.com\/channels\/\d+\/\d+(?:\/\d+)?$/i.test(
-                        destination
-                    );
-
-                if (
-                    !validChannelId &&
-                    !validChannelLink
-                ) {
-                    return interaction.reply({
-                        content:
-                            '❌ التوجه يجب أن يكون ايدي روم صحيح أو لينك روم صحيح.',
-                        ephemeral:
-                            true
-                    });
-                }
-
-                let destinationText =
-                    destination;
-
-                if (
-                    validChannelId
-                ) {
-                    destinationText =
-                        `<#${destination}>`;
-                }
-
-                const summonEmbed =
-                    new EmbedBuilder()
-                        .setColor(
-                            '#D4AC0D'
-                        )
-                        .setTitle(
-                            '📩 إشعار استدعاء'
-                        )
-                        .addFields(
-                            {
-                                name:
-                                    '🌐 السيرفر',
-                                value:
-                                    `**${interaction.guild.name}**`
-                            },
-                            {
-                                name:
-                                    '📍 التوجه',
-                                value:
-                                    destinationText
-                            },
-                            {
-                                name:
-                                    '📌 السبب',
-                                value:
-                                    reason
-                            }
-                        )
-                        .setTimestamp();
-
-                await interaction.reply({
-                    content:
-                        '📩 جاري إرسال إشعار الاستدعاء لجميع أعضاء السيرفر.',
-                    ephemeral:
-                        true
-                });
-
-                const members =
-                    await interaction.guild.members.fetch();
-
-                for (
-                    const member
-                    of members.values()
-                ) {
-                    if (
-                        member.user.bot
-                    ) {
-                        continue;
-                    }
-
-                    await member.send({
-                        embeds: [
-                            summonEmbed
-                        ]
-                    }).catch(
-                        () => {}
-                    );
-                }
-
-                return;
-            }
-
-            /* =====================================================
                VERIFY TRANSFER
             ===================================================== */
 
@@ -3179,6 +1516,15 @@ client.on(
                     });
                 }
 
+                if (!interaction.guild) {
+                    return interaction.reply({
+                        content:
+                            '❌ هذا الأمر يعمل داخل السيرفر فقط.',
+                        ephemeral:
+                            true
+                    });
+                }
+
                 const key =
                     transferKey(
                         interaction.guild.id,
@@ -3201,10 +1547,6 @@ client.on(
 
                 const db =
                     loadDB();
-
-                /*
-                الرصيد مأخوذ من نفس السيرفر
-                */
 
                 const sender =
                     getUser(
@@ -3357,10 +1699,6 @@ client.on(
                     const db =
                         loadDB();
 
-                    /*
-                    المرسل والمستلم من نفس السيرفر
-                    */
-
                     const sender =
                         getUser(
                             db,
@@ -3397,10 +1735,6 @@ client.on(
 
                     target.balance +=
                         transfer.amount;
-
-                    /*
-                    حفظ الرصيدين بعد التحويل
-                    */
 
                     saveDB(db);
 
@@ -3536,11 +1870,6 @@ function gracefulSave() {
     try {
         const db =
             loadDB();
-
-        /*
-        التأكد من وجود بيانات لكل السيرفرات
-        قبل الإغلاق
-        */
 
         for (
             const guild
