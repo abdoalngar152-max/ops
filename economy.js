@@ -2263,7 +2263,7 @@ client.on(
                 ) {
                     return interaction.reply({
                         content:
-                            '⭐ البريميوم',
+                            'افتح تيكت الدعم الفني ل شراء البريميوم  ',
                         ephemeral:
                             true
                     });
