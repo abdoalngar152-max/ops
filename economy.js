@@ -48,12 +48,8 @@ const TICKET_PANEL_IMAGE =
 ========================================================= */
 
 const DB_FILE = path.join(__dirname, 'economy.json');
-
-const DB_BACKUP_FILE =
-    path.join(__dirname, 'economy.backup.json');
-
-const DB_TEMP_FILE =
-    path.join(__dirname, 'economy.tmp.json');
+const DB_BACKUP_FILE = path.join(__dirname, 'economy.backup.json');
+const DB_TEMP_FILE = path.join(__dirname, 'economy.tmp.json');
 
 /* =========================================================
    TOKEN
@@ -127,11 +123,10 @@ function loadDB() {
             }
         }
 
-        const raw =
-            fs.readFileSync(
-                DB_FILE,
-                'utf8'
-            );
+        const raw = fs.readFileSync(
+            DB_FILE,
+            'utf8'
+        );
 
         if (!raw.trim()) {
             throw new Error(
@@ -139,8 +134,7 @@ function loadDB() {
             );
         }
 
-        const data =
-            JSON.parse(raw);
+        const data = JSON.parse(raw);
 
         if (
             !data ||
@@ -163,11 +157,9 @@ function loadDB() {
         data.version = 4;
 
         for (
-            const guildId
-            of Object.keys(data.guilds)
+            const guildId of Object.keys(data.guilds)
         ) {
-            const guildData =
-                data.guilds[guildId];
+            const guildData = data.guilds[guildId];
 
             if (
                 !guildData ||
@@ -186,8 +178,7 @@ function loadDB() {
                     'economyChannelId'
                 )
             ) {
-                guildData.economyChannelId =
-                    null;
+                guildData.economyChannelId = null;
             }
 
             if (
@@ -199,11 +190,11 @@ function loadDB() {
             }
 
             for (
-                const userId
-                of Object.keys(guildData.users)
+                const userId of Object.keys(
+                    guildData.users
+                )
             ) {
-                const user =
-                    guildData.users[userId];
+                const user = guildData.users[userId];
 
                 if (
                     !user ||
@@ -224,16 +215,12 @@ function loadDB() {
                 }
 
                 if (
-                    !Number.isFinite(
-                        user.balance
-                    )
+                    !Number.isFinite(user.balance)
                 ) {
                     user.balance = 0;
                 }
 
-                if (
-                    user.balance < 0
-                ) {
+                if (user.balance < 0) {
                     user.balance = 0;
                 }
 
@@ -241,15 +228,11 @@ function loadDB() {
                     typeof user.lastDaily !== 'number'
                 ) {
                     user.lastDaily =
-                        Number(
-                            user.lastDaily
-                        ) || 0;
+                        Number(user.lastDaily) || 0;
                 }
 
                 if (
-                    !Number.isFinite(
-                        user.lastDaily
-                    )
+                    !Number.isFinite(user.lastDaily)
                 ) {
                     user.lastDaily = 0;
                 }
@@ -257,7 +240,6 @@ function loadDB() {
         }
 
         return data;
-
     } catch (error) {
         console.error(
             '❌ تعذر تحميل قاعدة البيانات:',
@@ -265,11 +247,7 @@ function loadDB() {
         );
 
         try {
-            if (
-                fs.existsSync(
-                    DB_BACKUP_FILE
-                )
-            ) {
+            if (fs.existsSync(DB_BACKUP_FILE)) {
                 const backupRaw =
                     fs.readFileSync(
                         DB_BACKUP_FILE,
@@ -277,9 +255,7 @@ function loadDB() {
                     );
 
                 const backup =
-                    JSON.parse(
-                        backupRaw
-                    );
+                    JSON.parse(backupRaw);
 
                 if (
                     backup &&
@@ -334,12 +310,11 @@ function saveDB(data) {
 
         data.version = 4;
 
-        const json =
-            JSON.stringify(
-                data,
-                null,
-                2
-            );
+        const json = JSON.stringify(
+            data,
+            null,
+            2
+        );
 
         fs.writeFileSync(
             DB_TEMP_FILE,
@@ -347,11 +322,7 @@ function saveDB(data) {
             'utf8'
         );
 
-        if (
-            fs.existsSync(
-                DB_FILE
-            )
-        ) {
+        if (fs.existsSync(DB_FILE)) {
             fs.copyFileSync(
                 DB_FILE,
                 DB_BACKUP_FILE
@@ -364,7 +335,6 @@ function saveDB(data) {
         );
 
         return true;
-
     } catch (error) {
         console.error(
             '❌ فشل حفظ قاعدة البيانات:',
@@ -372,14 +342,8 @@ function saveDB(data) {
         );
 
         try {
-            if (
-                fs.existsSync(
-                    DB_TEMP_FILE
-                )
-            ) {
-                fs.unlinkSync(
-                    DB_TEMP_FILE
-                );
+            if (fs.existsSync(DB_TEMP_FILE)) {
+                fs.unlinkSync(DB_TEMP_FILE);
             }
         } catch {}
 
@@ -409,8 +373,7 @@ function ensureGuild(
             'economyChannelId'
         )
     ) {
-        guildData.economyChannelId =
-            null;
+        guildData.economyChannelId = null;
     }
 
     if (
@@ -455,16 +418,12 @@ function ensureUser(
     }
 
     if (
-        !Number.isFinite(
-            user.balance
-        )
+        !Number.isFinite(user.balance)
     ) {
         user.balance = 0;
     }
 
-    if (
-        user.balance < 0
-    ) {
+    if (user.balance < 0) {
         user.balance = 0;
     }
 
@@ -472,15 +431,11 @@ function ensureUser(
         typeof user.lastDaily !== 'number'
     ) {
         user.lastDaily =
-            Number(
-                user.lastDaily
-            ) || 0;
+            Number(user.lastDaily) || 0;
     }
 
     if (
-        !Number.isFinite(
-            user.lastDaily
-        )
+        !Number.isFinite(user.lastDaily)
     ) {
         user.lastDaily = 0;
     }
@@ -539,14 +494,10 @@ function parseAmount(value) {
 
     const amount =
         number *
-        (
-            multipliers[suffix] || 1
-        );
+        (multipliers[suffix] || 1);
 
     if (
-        !Number.isFinite(
-            amount
-        )
+        !Number.isFinite(amount)
     ) {
         return NaN;
     }
@@ -554,15 +505,11 @@ function parseAmount(value) {
     return Math.floor(amount);
 }
 
-function formatAmount(
-    amount
-) {
+function formatAmount(amount) {
     amount =
         Number(amount) || 0;
 
-    if (
-        amount < 1000
-    ) {
+    if (amount < 1000) {
         return String(amount);
     }
 
@@ -586,21 +533,16 @@ function formatAmount(
     ];
 
     for (
-        const unit
-        of units
+        const unit of units
     ) {
         if (
-            amount >=
-            unit.value
+            amount >= unit.value
         ) {
             const result =
-                amount /
-                unit.value;
+                amount / unit.value;
 
             if (
-                Number.isInteger(
-                    result
-                )
+                Number.isInteger(result)
             ) {
                 return `${result}${unit.suffix}`;
             }
@@ -618,9 +560,7 @@ function formatAmount(
    HELPERS
 ========================================================= */
 
-function isAdmin(
-    member
-) {
+function isAdmin(member) {
     return Boolean(
         member &&
         member.permissions.has(
@@ -629,15 +569,12 @@ function isAdmin(
     );
 }
 
-function isEconomyChannel(
-    message
-) {
+function isEconomyChannel(message) {
     if (!message.guild) {
         return false;
     }
 
-    const db =
-        loadDB();
+    const db = loadDB();
 
     const guildData =
         ensureGuild(
@@ -652,8 +589,7 @@ function isEconomyChannel(
     );
 }
 
-const pendingTransfers =
-    new Map();
+const pendingTransfers = new Map();
 
 function transferKey(
     guildId,
@@ -670,12 +606,9 @@ function cleanupPendingForGuild(
         of pendingTransfers.entries()
     ) {
         if (
-            value.guildId ===
-            guildId
+            value.guildId === guildId
         ) {
-            pendingTransfers.delete(
-                key
-            );
+            pendingTransfers.delete(key);
         }
     }
 }
@@ -684,9 +617,7 @@ function cleanupPendingForGuild(
    TICKET HELPERS
 ========================================================= */
 
-function getTicketOwner(
-    channel
-) {
+function getTicketOwner(channel) {
     if (
         !channel ||
         !channel.topic
@@ -704,9 +635,7 @@ function getTicketOwner(
         : null;
 }
 
-function getTicketType(
-    channel
-) {
+function getTicketType(channel) {
     if (
         !channel ||
         !channel.topic
@@ -724,9 +653,7 @@ function getTicketType(
         : null;
 }
 
-function isTicket(
-    channel
-) {
+function isTicket(channel) {
     return Boolean(
         channel &&
         channel.type === ChannelType.GuildText &&
@@ -737,24 +664,35 @@ function isTicket(
     );
 }
 
-function getTicketRoleId(
-    type
-) {
+function getTicketRoleId(type) {
     if (
-        type ===
-        'technical_support'
+        type === 'technical_support'
     ) {
         return TECHNICAL_SUPPORT_ROLE_ID;
     }
 
     if (
-        type ===
-        'technical_report'
+        type === 'technical_report'
     ) {
         return TECHNICAL_REPORT_ROLE_ID;
     }
 
     return null;
+}
+
+function canManageTicket(member) {
+    return Boolean(
+        member &&
+        (
+            isAdmin(member) ||
+            member.roles.cache.has(
+                TECHNICAL_SUPPORT_ROLE_ID
+            ) ||
+            member.roles.cache.has(
+                TECHNICAL_REPORT_ROLE_ID
+            )
+        )
+    );
 }
 
 async function findExistingTicket(
@@ -781,7 +719,7 @@ function ticketPanelComponents() {
             .addOptions(
                 {
                     label:
-                        'الدعم الفني',
+                        'دعم الفني',
                     description:
                         'للدعم والاستفسارات والمساعدة',
                     value:
@@ -791,7 +729,7 @@ function ticketPanelComponents() {
                 },
                 {
                     label:
-                        'أبلاغ عن مشكلة تقنية',
+                        'أبلاغ عن مشكله تقنيه',
                     description:
                         'للإبلاغ عن مشكلة تقنية',
                     value:
@@ -821,18 +759,6 @@ function ticketControlComponents() {
                 ButtonStyle.Secondary
             );
 
-    const closeButton =
-        new ButtonBuilder()
-            .setCustomId(
-                'ticket_close'
-            )
-            .setLabel(
-                'غلق'
-            )
-            .setStyle(
-                ButtonStyle.Danger
-            );
-
     const premiumButton =
         new ButtonBuilder()
             .setCustomId(
@@ -843,6 +769,18 @@ function ticketControlComponents() {
             )
             .setStyle(
                 ButtonStyle.Primary
+            );
+
+    const closeButton =
+        new ButtonBuilder()
+            .setCustomId(
+                'ticket_close'
+            )
+            .setLabel(
+                'غلق'
+            )
+            .setStyle(
+                ButtonStyle.Danger
             );
 
     const optionsMenu =
@@ -858,7 +796,7 @@ function ticketControlComponents() {
                     label:
                         'استدعاء صاحب التذكرة',
                     description:
-                        'منشن صاحب التذكرة داخل التذكرة',
+                        'استدعاء صاحب التذكرة',
                     value:
                         'summon_owner',
                     emoji:
@@ -938,6 +876,100 @@ function ticketControlComponents() {
     ];
 }
 
+function createTicketPanelEmbed() {
+    return new EmbedBuilder()
+        .setColor('#D4AC0D')
+        .setTitle(
+            '📥 | قسم الدعم الفني والمساعدة'
+        )
+        .setDescription(
+            'لـفتح تذكرة قم بالضغط على الزر اللذي بالأسفل ثم قم بتحديد إحتياجاتك. ⚠️\n\n**شروط وقوانين فتح التذاكر:**\nيُمنع منعاً باتاً فتح تذكرة بدون سبب واضح أو للتسلية (تذكرة عشوائية = تايم أوت ).'
+        )
+        .setImage(
+            TICKET_PANEL_IMAGE
+        );
+}
+
+async function setupTicketPanel() {
+    try {
+        const panelChannel =
+            await client.channels.fetch(
+                TICKET_PANEL_CHANNEL_ID
+            ).catch(
+                () => null
+            );
+
+        if (
+            !panelChannel ||
+            !panelChannel.isTextBased()
+        ) {
+            console.error(
+                `❌ لم يتم العثور على روم التيكت ${TICKET_PANEL_CHANNEL_ID}`
+            );
+            return;
+        }
+
+        const panelEmbed =
+            createTicketPanelEmbed();
+
+        const messages =
+            await panelChannel.messages.fetch({
+                limit: 100
+            }).catch(
+                () => null
+            );
+
+        let oldPanel = null;
+
+        if (messages) {
+            oldPanel =
+                messages.find(
+                    msg =>
+                        msg.author.id ===
+                            client.user.id &&
+                        msg.embeds.some(
+                            embed =>
+                                embed.title ===
+                                '📥 | قسم الدعم الفني والمساعدة'
+                        )
+                );
+        }
+
+        if (oldPanel) {
+            await oldPanel.edit({
+                embeds: [
+                    panelEmbed
+                ],
+                components:
+                    ticketPanelComponents()
+            });
+
+            console.log(
+                '✅ تم تحديث لوحة التيكت الموجودة.'
+            );
+
+            return;
+        }
+
+        await panelChannel.send({
+            embeds: [
+                panelEmbed
+            ],
+            components:
+                ticketPanelComponents()
+        });
+
+        console.log(
+            `✅ تم تسطيب لوحة التيكت في الروم ${TICKET_PANEL_CHANNEL_ID}`
+        );
+    } catch (error) {
+        console.error(
+            '❌ خطأ في تسطيب لوحة التيكت:',
+            error
+        );
+    }
+}
+
 /* =========================================================
    SLASH COMMANDS
 ========================================================= */
@@ -973,7 +1005,6 @@ async function registerSlashCommands() {
         console.log(
             '✅ تم تحديث أوامر السلاش.'
         );
-
     } catch (error) {
         console.error(
             '❌ فشل تسجيل أوامر السلاش:',
@@ -1005,8 +1036,7 @@ client.once(
             loadDB();
 
         for (
-            const guild
-            of client.guilds.cache.values()
+            const guild of client.guilds.cache.values()
         ) {
             ensureGuild(
                 db,
@@ -1056,65 +1086,7 @@ client.once(
             1000
         );
 
-        for (
-            const guild
-            of client.guilds.cache.values()
-        ) {
-            const panelChannel =
-                guild.channels.cache.get(
-                    TICKET_PANEL_CHANNEL_ID
-                );
-
-            if (
-                panelChannel &&
-                panelChannel.isTextBased()
-            ) {
-                const existing =
-                    await panelChannel.messages.fetch({
-                        limit: 20
-                    }).catch(
-                        () => null
-                    );
-
-                if (existing) {
-                    const oldPanel =
-                        existing.find(
-                            msg =>
-                                msg.author.id ===
-                                    client.user.id &&
-                                msg.embeds.some(
-                                    embed =>
-                                        embed.title ===
-                                        '📥 | قسم الدعم الفني والمساعدة'
-                                )
-                        );
-
-                    if (oldPanel) {
-                        await oldPanel.edit({
-                            embeds: [
-                                new EmbedBuilder()
-                                    .setColor(
-                                        '#D4AC0D'
-                                    )
-                                    .setTitle(
-                                        '📥 | قسم الدعم الفني والمساعدة'
-                                    )
-                                    .setDescription(
-                                        '**لـفتح تذكرة قم بالضغط على الزر اللذي بالأسفل ثم قم بتحديد إحتياجاتك.**\n\n⚠️ **شروط وقوانين فتح التذاكر:**\nيُمنع منعاً باتاً فتح تذكرة بدون سبب واضح أو للتسلية (تذكرة عشوائية = تايم أوت ).'
-                                    )
-                                    .setImage(
-                                        TICKET_PANEL_IMAGE
-                                    )
-                            ],
-                            components:
-                                ticketPanelComponents()
-                        }).catch(
-                            () => {}
-                        );
-                    }
-                }
-            }
-        }
+        await setupTicketPanel();
     }
 );
 
@@ -1173,8 +1145,7 @@ client.on(
             ===================================================== */
 
             if (
-                content ===
-                'دعم؟'
+                content === 'دعم؟'
             ) {
                 return message.channel.send({
                     content:
@@ -1196,17 +1167,25 @@ client.on(
                     message.channel
                 )
             ) {
-                if (
-                    !isAdmin(
+                const ownerId =
+                    getTicketOwner(
+                        message.channel
+                    );
+
+                const canClose =
+                    isAdmin(
                         message.member
-                    ) &&
-                    !message.member.roles.cache.has(
-                        TECHNICAL_SUPPORT_ROLE_ID
-                    ) &&
-                    !message.member.roles.cache.has(
-                        TECHNICAL_REPORT_ROLE_ID
-                    )
-                ) {
+                    ) ||
+                    canManageTicket(
+                        message.member
+                    ) ||
+                    (
+                        ownerId &&
+                        ownerId ===
+                            message.author.id
+                    );
+
+                if (!canClose) {
                     return;
                 }
 
@@ -1224,7 +1203,8 @@ client.on(
 
                 setTimeout(
                     async () => {
-                        await message.channel.delete()
+                        await message.channel
+                            .delete()
                             .catch(
                                 () => {}
                             );
@@ -1240,23 +1220,15 @@ client.on(
             ===================================================== */
 
             if (
-                (
-                    content.toLowerCase() ===
-                        '#open'
-                ) &&
+                content.toLowerCase() ===
+                    '#open' &&
                 isTicket(
                     message.channel
                 )
             ) {
                 if (
-                    !isAdmin(
+                    !canManageTicket(
                         message.member
-                    ) &&
-                    !message.member.roles.cache.has(
-                        TECHNICAL_SUPPORT_ROLE_ID
-                    ) &&
-                    !message.member.roles.cache.has(
-                        TECHNICAL_REPORT_ROLE_ID
                     )
                 ) {
                     return;
@@ -1267,33 +1239,21 @@ client.on(
                         message.channel
                     );
 
-                if (
-                    !ownerId
-                ) {
+                if (!ownerId) {
                     return;
                 }
 
-                const owner =
-                    await message.guild.members
-                        .fetch(
-                            ownerId
-                        )
-                        .catch(
-                            () => null
-                        );
-
-                if (
-                    owner
-                ) {
-                    await message.channel.permissionOverwrites.edit(
-                        owner.id,
-                        {
-                            ViewChannel: true,
-                            SendMessages: true,
-                            ReadMessageHistory: true
-                        }
-                    );
-                }
+                await message.channel.permissionOverwrites.edit(
+                    ownerId,
+                    {
+                        ViewChannel:
+                            true,
+                        SendMessages:
+                            true,
+                        ReadMessageHistory:
+                            true
+                    }
+                );
 
                 return message.channel.send({
                     embeds: [
@@ -1302,7 +1262,7 @@ client.on(
                                 '#D4AC0D'
                             )
                             .setDescription(
-                                '🔓 تم فتح الشات.'
+                                `🔓 تم فتح الشات بواسطة ${message.author}.`
                             )
                     ]
                 });
@@ -1436,10 +1396,8 @@ client.on(
             ===================================================== */
 
             if (
-                content ===
-                    'مكافاة' ||
-                content ===
-                    'مكافأة'
+                content === 'مكافاة' ||
+                content === 'مكافأة'
             ) {
                 const accountAge =
                     Date.now() -
@@ -1510,10 +1468,10 @@ client.on(
                                     1000
                                 )
                             ) /
-                                (
-                                    60 *
-                                    1000
-                                )
+                            (
+                                60 *
+                                1000
+                            )
                         );
 
                     return message.channel.send({
@@ -1685,7 +1643,6 @@ client.on(
                 ) {
                     amount =
                         currentBalance;
-
                 } else if (
                     argValue ===
                     'نص'
@@ -1694,7 +1651,6 @@ client.on(
                         Math.floor(
                             currentBalance / 2
                         );
-
                 } else {
                     amount =
                         parseAmount(
@@ -1785,12 +1741,9 @@ client.on(
             ===================================================== */
 
             if (
-                content ===
-                    'توب' ||
-                content ===
-                    'التوب' ||
-                content.toLowerCase() ===
-                    'top' ||
+                content === 'توب' ||
+                content === 'التوب' ||
+                content.toLowerCase() === 'top' ||
                 /^توب\s+[1-5]$/i.test(
                     content
                 )
@@ -1857,8 +1810,7 @@ client.on(
                         start + 10
                     );
 
-                let description =
-                    '';
+                let description = '';
 
                 pageUsers.forEach(
                     (
@@ -1938,9 +1890,7 @@ client.on(
                         interaction.user.id
                     );
 
-                if (
-                    existing
-                ) {
+                if (existing) {
                     return interaction.reply({
                         content:
                             `❌ لديك تذكرة مفتوحة بالفعل: ${existing}`,
@@ -1957,8 +1907,8 @@ client.on(
                         .setTitle(
                             type ===
                                 'technical_support'
-                                ? 'الدعم الفني'
-                                : 'أبلاغ عن مشكلة تقنية'
+                                ? 'دعم الفني'
+                                : 'أبلاغ عن مشكله تقنيه'
                         );
 
                 const reason =
@@ -2020,9 +1970,7 @@ client.on(
                         interaction.user.id
                     );
 
-                if (
-                    existing
-                ) {
+                if (existing) {
                     return interaction.reply({
                         content:
                             `❌ لديك تذكرة مفتوحة بالفعل: ${existing}`,
@@ -2032,8 +1980,10 @@ client.on(
                 }
 
                 const panelChannel =
-                    interaction.guild.channels.cache.get(
+                    await interaction.guild.channels.fetch(
                         TICKET_PANEL_CHANNEL_ID
+                    ).catch(
+                        () => null
                     );
 
                 const parentId =
@@ -2051,54 +2001,48 @@ client.on(
                     {
                         id:
                             interaction.guild.roles.everyone.id,
-                        deny:
-                            [
-                                PermissionFlagsBits.ViewChannel
-                            ]
+                        deny: [
+                            PermissionFlagsBits.ViewChannel
+                        ]
                     },
                     {
                         id:
                             interaction.user.id,
-                        allow:
-                            [
-                                PermissionFlagsBits.ViewChannel,
-                                PermissionFlagsBits.SendMessages,
-                                PermissionFlagsBits.ReadMessageHistory,
-                                PermissionFlagsBits.AttachFiles,
-                                PermissionFlagsBits.EmbedLinks
-                            ]
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory,
+                            PermissionFlagsBits.AttachFiles,
+                            PermissionFlagsBits.EmbedLinks
+                        ]
                     }
                 ];
 
-                if (
-                    roleId
-                ) {
+                if (roleId) {
                     permissionOverwrites.push({
                         id:
                             roleId,
-                        allow:
-                            [
-                                PermissionFlagsBits.ViewChannel,
-                                PermissionFlagsBits.SendMessages,
-                                PermissionFlagsBits.ReadMessageHistory,
-                                PermissionFlagsBits.AttachFiles,
-                                PermissionFlagsBits.EmbedLinks
-                            ]
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory,
+                            PermissionFlagsBits.AttachFiles,
+                            PermissionFlagsBits.EmbedLinks
+                        ]
                     });
                 }
 
                 permissionOverwrites.push({
                     id:
                         client.user.id,
-                    allow:
-                        [
-                            PermissionFlagsBits.ViewChannel,
-                            PermissionFlagsBits.SendMessages,
-                            PermissionFlagsBits.ReadMessageHistory,
-                            PermissionFlagsBits.ManageChannels,
-                            PermissionFlagsBits.ManageMessages,
-                            PermissionFlagsBits.ManageRoles
-                        ]
+                    allow: [
+                        PermissionFlagsBits.ViewChannel,
+                        PermissionFlagsBits.SendMessages,
+                        PermissionFlagsBits.ReadMessageHistory,
+                        PermissionFlagsBits.ManageChannels,
+                        PermissionFlagsBits.ManageMessages,
+                        PermissionFlagsBits.ManageRoles
+                    ]
                 });
 
                 const safeName =
@@ -2138,19 +2082,13 @@ client.on(
                         ? `<@&${roleId}>`
                         : '';
 
-                const typeTitle =
-                    type ===
-                        'technical_support'
-                        ? 'الدعم الفني'
-                        : 'أبلاغ عن مشكلة تقنية';
-
                 const ticketEmbed =
                     new EmbedBuilder()
                         .setColor(
                             '#D4AC0D'
                         )
                         .setDescription(
-                            `**${typeTitle}**\n\nيرجى انتظار مسؤولين التذكرة الرد عليك\n\nالسبب\n\`\`\`diff\n+ ${reason}\n\`\`\``
+                            `**دعم الفني**\n\nيرجى انتظار مسؤولين التذكرة الرد عليك\n\nالسبب\n\`\`\`diff\n${reason}\n\`\`\``
                         )
                         .setImage(
                             TICKET_IMAGE
@@ -2204,21 +2142,33 @@ client.on(
                     });
                 }
 
+                /* =================================================
+                   غلق التذكرة
+                ================================================= */
+
                 if (
                     interaction.customId ===
                     'ticket_close'
                 ) {
-                    if (
-                        !isAdmin(
+                    const ownerId =
+                        getTicketOwner(
+                            interaction.channel
+                        );
+
+                    const canClose =
+                        isAdmin(
                             interaction.member
-                        ) &&
-                        !interaction.member.roles.cache.has(
-                            TECHNICAL_SUPPORT_ROLE_ID
-                        ) &&
-                        !interaction.member.roles.cache.has(
-                            TECHNICAL_REPORT_ROLE_ID
-                        )
-                    ) {
+                        ) ||
+                        canManageTicket(
+                            interaction.member
+                        ) ||
+                        (
+                            ownerId &&
+                            ownerId ===
+                                interaction.user.id
+                        );
+
+                    if (!canClose) {
                         return interaction.reply({
                             content:
                                 '❌ ليس لديك صلاحية غلق التذكرة.',
@@ -2241,7 +2191,8 @@ client.on(
 
                     setTimeout(
                         async () => {
-                            await interaction.channel.delete()
+                            await interaction.channel
+                                .delete()
                                 .catch(
                                     () => {}
                                 );
@@ -2252,19 +2203,17 @@ client.on(
                     return;
                 }
 
+                /* =================================================
+                   استلام
+                ================================================= */
+
                 if (
                     interaction.customId ===
                     'ticket_claim'
                 ) {
                     if (
-                        !isAdmin(
+                        !canManageTicket(
                             interaction.member
-                        ) &&
-                        !interaction.member.roles.cache.has(
-                            TECHNICAL_SUPPORT_ROLE_ID
-                        ) &&
-                        !interaction.member.roles.cache.has(
-                            TECHNICAL_REPORT_ROLE_ID
                         )
                     ) {
                         return interaction.reply({
@@ -2275,16 +2224,20 @@ client.on(
                         });
                     }
 
-                    await interaction.channel.permissionOverwrites.edit(
-                        interaction.user.id,
-                        {
-                            ViewChannel:
-                                true,
-                            SendMessages:
-                                true,
-                            ReadMessageHistory:
-                                true
-                        }
+                    const ownerId =
+                        getTicketOwner(
+                            interaction.channel
+                        );
+
+                    const type =
+                        getTicketType(
+                            interaction.channel
+                        );
+
+                    await interaction.channel.setTopic(
+                        `ticket:yes owner:${ownerId} type:${type} claimed:${interaction.user.id}`
+                    ).catch(
+                        () => {}
                     );
 
                     return interaction.reply({
@@ -2299,6 +2252,10 @@ client.on(
                         ]
                     });
                 }
+
+                /* =================================================
+                   البريميوم
+                ================================================= */
 
                 if (
                     interaction.customId ===
@@ -2339,28 +2296,33 @@ client.on(
                     interaction.values[0];
 
                 const canManage =
-                    isAdmin(
+                    canManageTicket(
                         interaction.member
-                    ) ||
-                    interaction.member.roles.cache.has(
-                        TECHNICAL_SUPPORT_ROLE_ID
-                    ) ||
-                    interaction.member.roles.cache.has(
-                        TECHNICAL_REPORT_ROLE_ID
                     );
+
+                /* =================================================
+                   استدعاء صاحب التذكرة
+                ================================================= */
 
                 if (
                     selected ===
                     'summon_owner'
                 ) {
+                    if (!canManage) {
+                        return interaction.reply({
+                            content:
+                                '❌ هذا الخيار مخصص لفريق الدعم.',
+                            ephemeral:
+                                true
+                        });
+                    }
+
                     const ownerId =
                         getTicketOwner(
                             interaction.channel
                         );
 
-                    if (
-                        !ownerId
-                    ) {
+                    if (!ownerId) {
                         return interaction.reply({
                             content:
                                 '❌ تعذر العثور على صاحب التذكرة.',
@@ -2378,9 +2340,7 @@ client.on(
                                 () => null
                             );
 
-                    if (
-                        !owner
-                    ) {
+                    if (!owner) {
                         return interaction.reply({
                             content:
                                 '❌ صاحب التذكرة غير موجود.',
@@ -2390,6 +2350,8 @@ client.on(
                     }
 
                     return interaction.reply({
+                        content:
+                            `<@${ownerId}>`,
                         embeds: [
                             new EmbedBuilder()
                                 .setColor(
@@ -2402,9 +2364,7 @@ client.on(
                     });
                 }
 
-                if (
-                    !canManage
-                ) {
+                if (!canManage) {
                     return interaction.reply({
                         content:
                             '❌ هذا الخيار مخصص لفريق الدعم.',
@@ -2413,25 +2373,21 @@ client.on(
                     });
                 }
 
+                /* =================================================
+                   إضافة عضو
+                ================================================= */
+
                 if (
                     selected ===
-                        'add_member' ||
-                    selected ===
-                        'remove_member'
+                    'add_member'
                 ) {
                     const modal =
                         new ModalBuilder()
                             .setCustomId(
-                                selected ===
-                                    'add_member'
-                                    ? 'ticket_add_member'
-                                    : 'ticket_remove_member'
+                                'ticket_add_member'
                             )
                             .setTitle(
-                                selected ===
-                                    'add_member'
-                                    ? 'إضافة عضو للتذكرة'
-                                    : 'إزالة عضو من التذكرة'
+                                'إضافة عضو للتذكرة'
                             );
 
                     const memberInput =
@@ -2462,6 +2418,56 @@ client.on(
                         modal
                     );
                 }
+
+                /* =================================================
+                   إزالة عضو
+                ================================================= */
+
+                if (
+                    selected ===
+                    'remove_member'
+                ) {
+                    const modal =
+                        new ModalBuilder()
+                            .setCustomId(
+                                'ticket_remove_member'
+                            )
+                            .setTitle(
+                                'إزالة عضو من التذكرة'
+                            );
+
+                    const memberInput =
+                        new TextInputBuilder()
+                            .setCustomId(
+                                'member_id'
+                            )
+                            .setLabel(
+                                'ID العضو'
+                            )
+                            .setPlaceholder(
+                                'ضع ID العضو هنا'
+                            )
+                            .setStyle(
+                                TextInputStyle.Short
+                            )
+                            .setRequired(
+                                true
+                            );
+
+                    modal.addComponents(
+                        new ActionRowBuilder().addComponents(
+                            memberInput
+                        )
+                    );
+
+                    return interaction.showModal(
+                        modal
+                    );
+                }
+
+                /* =================================================
+                   تغيير اسم التذكرة
+                ================================================= */
 
                 if (
                     selected ===
@@ -2508,6 +2514,10 @@ client.on(
                     );
                 }
 
+                /* =================================================
+                   قفل الشات
+                ================================================= */
+
                 if (
                     selected ===
                     'lock_chat'
@@ -2517,9 +2527,7 @@ client.on(
                             interaction.channel
                         );
 
-                    if (
-                        ownerId
-                    ) {
+                    if (ownerId) {
                         await interaction.channel.permissionOverwrites.edit(
                             ownerId,
                             {
@@ -2542,6 +2550,10 @@ client.on(
                     });
                 }
 
+                /* =================================================
+                   فتح الشات
+                ================================================= */
+
                 if (
                     selected ===
                     'unlock_chat'
@@ -2551,9 +2563,7 @@ client.on(
                             interaction.channel
                         );
 
-                    if (
-                        ownerId
-                    ) {
+                    if (ownerId) {
                         await interaction.channel.permissionOverwrites.edit(
                             ownerId,
                             {
@@ -2580,6 +2590,10 @@ client.on(
                     });
                 }
 
+                /* =================================================
+                   غلق التذكرة
+                ================================================= */
+
                 if (
                     selected ===
                     'close_ticket'
@@ -2598,7 +2612,8 @@ client.on(
 
                     setTimeout(
                         async () => {
-                            await interaction.channel.delete()
+                            await interaction.channel
+                                .delete()
                                 .catch(
                                     () => {}
                                 );
@@ -2619,10 +2634,28 @@ client.on(
                 interaction.customId ===
                     'ticket_add_member'
             ) {
+                if (
+                    !isTicket(
+                        interaction.channel
+                    ) ||
+                    !canManageTicket(
+                        interaction.member
+                    )
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ ليس لديك صلاحية استخدام هذا الخيار.',
+                        ephemeral:
+                            true
+                    });
+                }
+
                 const memberId =
-                    interaction.fields.getTextInputValue(
-                        'member_id'
-                    ).trim();
+                    interaction.fields
+                        .getTextInputValue(
+                            'member_id'
+                        )
+                        .trim();
 
                 const member =
                     await interaction.guild.members
@@ -2633,9 +2666,7 @@ client.on(
                             () => null
                         );
 
-                if (
-                    !member
-                ) {
+                if (!member) {
                     return interaction.reply({
                         content:
                             '❌ لم يتم العثور على العضو.',
@@ -2678,10 +2709,44 @@ client.on(
                 interaction.customId ===
                     'ticket_remove_member'
             ) {
+                if (
+                    !isTicket(
+                        interaction.channel
+                    ) ||
+                    !canManageTicket(
+                        interaction.member
+                    )
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ ليس لديك صلاحية استخدام هذا الخيار.',
+                        ephemeral:
+                            true
+                    });
+                }
+
                 const memberId =
-                    interaction.fields.getTextInputValue(
-                        'member_id'
-                    ).trim();
+                    interaction.fields
+                        .getTextInputValue(
+                            'member_id'
+                        )
+                        .trim();
+
+                const ownerId =
+                    getTicketOwner(
+                        interaction.channel
+                    );
+
+                if (
+                    memberId === ownerId
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ لا يمكنك إزالة صاحب التذكرة.',
+                        ephemeral:
+                            true
+                    });
+                }
 
                 const member =
                     await interaction.guild.members
@@ -2692,9 +2757,7 @@ client.on(
                             () => null
                         );
 
-                if (
-                    !member
-                ) {
+                if (!member) {
                     return interaction.reply({
                         content:
                             '❌ لم يتم العثور على العضو.',
@@ -2703,11 +2766,13 @@ client.on(
                     });
                 }
 
-                await interaction.channel.permissionOverwrites.delete(
-                    member.id
-                ).catch(
-                    () => {}
-                );
+                await interaction.channel.permissionOverwrites
+                    .delete(
+                        member.id
+                    )
+                    .catch(
+                        () => {}
+                    );
 
                 return interaction.reply({
                     embeds: [
@@ -2727,10 +2792,28 @@ client.on(
                 interaction.customId ===
                     'ticket_rename'
             ) {
+                if (
+                    !isTicket(
+                        interaction.channel
+                    ) ||
+                    !canManageTicket(
+                        interaction.member
+                    )
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ ليس لديك صلاحية استخدام هذا الخيار.',
+                        ephemeral:
+                            true
+                    });
+                }
+
                 let newName =
-                    interaction.fields.getTextInputValue(
-                        'ticket_name'
-                    ).trim();
+                    interaction.fields
+                        .getTextInputValue(
+                            'ticket_name'
+                        )
+                        .trim();
 
                 newName =
                     newName
@@ -2747,9 +2830,7 @@ client.on(
                             90
                         );
 
-                if (
-                    !newName
-                ) {
+                if (!newName) {
                     return interaction.reply({
                         content:
                             '❌ اسم التذكرة غير صالح.',
@@ -2875,9 +2956,7 @@ client.on(
                     key
                 );
 
-            if (
-                !transfer
-            ) {
+            if (!transfer) {
                 return interaction.reply({
                     content:
                         '❌ عملية التحويل انتهت أو غير موجودة.',
@@ -3018,9 +3097,7 @@ client.on(
                     () => {}
                 );
 
-            if (
-                transfer.botMsg
-            ) {
+            if (transfer.botMsg) {
                 await transfer.botMsg
                     .delete()
                     .catch(
@@ -3198,8 +3275,7 @@ function gracefulSave() {
             loadDB();
 
         for (
-            const guild
-            of client.guilds.cache.values()
+            const guild of client.guilds.cache.values()
         ) {
             ensureGuild(
                 db,
@@ -3212,7 +3288,6 @@ function gracefulSave() {
         console.log(
             '💾 تم حفظ بيانات الاقتصاد لكل السيرفرات قبل الإغلاق.'
         );
-
     } catch (error) {
         console.error(
             '❌ خطأ أثناء الحفظ قبل الإغلاق:',
