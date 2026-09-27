@@ -5,7 +5,10 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    PermissionFlagsBits
+    PermissionFlagsBits,
+    SlashCommandBuilder,
+    REST,
+    Routes
 } from 'discord.js';
 
 import fs from 'fs';
@@ -377,15 +380,6 @@ function isAdmin(member) {
     );
 }
 
-const pendingTransfers = new Map();
-
-function transferKey(
-    guildId,
-    userId
-) {
-    return `${guildId}:${userId}`;
-}
-
 function cleanupPendingForGuild(guildId) {
     for (
         const [
@@ -402,6 +396,73 @@ function cleanupPendingForGuild(guildId) {
     }
 }
 
+function transferKey(
+    guildId,
+    userId
+) {
+    return `${guildId}:${userId}`;
+}
+
+const pendingTransfers = new Map();
+
+/* =========================================================
+   SLASH COMMANDS
+   فقط تفعيل وتعطيل روم العملة
+========================================================= */
+
+const slashCommands = [
+    new SlashCommandBuilder()
+        .setName('currency')
+        .setDescription('إدارة روم نظام العملة')
+        .addSubcommand(sub =>
+            sub
+                .setName('enable')
+                .setDescription('تفعيل نظام العملة في الروم الحالي')
+        )
+        .addSubcommand(sub =>
+            sub
+                .setName('disable')
+                .setDescription('تعطيل نظام العملة في السيرفر')
+        )
+];
+
+async function registerSlashCommands() {
+    try {
+        const rest =
+            new REST({
+                version: '10'
+            }).setToken(TOKEN);
+
+        const commands =
+            slashCommands.map(
+                command =>
+                    command.toJSON()
+            );
+
+        await rest.put(
+            Routes.applicationCommands(
+                client.user.id
+            ),
+            {
+                body: commands
+            }
+        );
+
+        console.log(
+            '✅ تم تسجيل أوامر السلاش.'
+        );
+    } catch (error) {
+        console.error(
+            '❌ فشل تسجيل أوامر السلاش:',
+            error
+        );
+    }
+}
+
+/* =========================================================
+   READY
+========================================================= */
+
 client.once(
     'ready',
     async () => {
@@ -417,7 +478,8 @@ client.once(
             '======================================'
         );
 
-        const db = loadDB();
+        const db =
+            loadDB();
 
         for (
             const guild of
@@ -430,6 +492,8 @@ client.once(
         }
 
         saveDB(db);
+
+        await registerSlashCommands();
 
         const statuses = [
             'نظام العملات',
@@ -466,11 +530,16 @@ client.once(
     }
 );
 
+/* =========================================================
+   GUILD CREATE
+========================================================= */
+
 client.on(
     'guildCreate',
     guild => {
         try {
-            const db = loadDB();
+            const db =
+                loadDB();
 
             ensureGuild(
                 db,
@@ -491,6 +560,15 @@ client.on(
     }
 );
 
+/* =========================================================
+   MESSAGE COMMANDS
+   رصيد / ops
+   توب
+   تحويل
+   تفعيل العملة
+   تعطيل العملة
+========================================================= */
+
 client.on(
     'messageCreate',
     async message => {
@@ -506,7 +584,8 @@ client.on(
             const content =
                 message.content.trim();
 
-            const db = loadDB();
+            const db =
+                loadDB();
 
             const guildData =
                 ensureGuild(
@@ -514,19 +593,19 @@ client.on(
                     message.guild.id
                 );
 
+            /* =====================================================
+               تفعيل العملة
+            ===================================================== */
+
             if (
-                content ===
-                    'تفعيل العملة' ||
-                content ===
-                    'تفعيل العملات'
+                content === 'تفعيل العملة' ||
+                content === 'تفعيل العملات'
             ) {
                 if (!isAdmin(message.member)) {
                     return message.channel.send({
                         embeds: [
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
                                 .setDescription(
                                     '❌ هذا الأمر مخصص للإداريين فقط.'
                                 )
@@ -542,9 +621,7 @@ client.on(
                 return message.channel.send({
                     embeds: [
                         new EmbedBuilder()
-                            .setColor(
-                                '#D4AC0D'
-                            )
+                            .setColor('#D4AC0D')
                             .setDescription(
                                 `✅ تم تفعيل نظام العملة في <#${message.channel.id}>.\n\n💾 سيتم حفظ التفعيل حتى بعد إعادة تشغيل البوت.`
                             )
@@ -552,19 +629,19 @@ client.on(
                 });
             }
 
+            /* =====================================================
+               تعطيل العملة
+            ===================================================== */
+
             if (
-                content ===
-                    'تعطيل العملة' ||
-                content ===
-                    'تعطيل العملات'
+                content === 'تعطيل العملة' ||
+                content === 'تعطيل العملات'
             ) {
                 if (!isAdmin(message.member)) {
                     return message.channel.send({
                         embeds: [
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
                                 .setDescription(
                                     '❌ هذا الأمر مخصص للإداريين فقط.'
                                 )
@@ -584,15 +661,17 @@ client.on(
                 return message.channel.send({
                     embeds: [
                         new EmbedBuilder()
-                            .setColor(
-                                '#D4AC0D'
-                            )
+                            .setColor('#D4AC0D')
                             .setDescription(
                                 '✅ تم تعطيل نظام العملة في هذا السيرفر.'
                             )
                     ]
                 });
             }
+
+            /* =====================================================
+               لا تعمل أوامر الاقتصاد إلا في الروم المحدد
+            ===================================================== */
 
             if (
                 !guildData.economyChannelId ||
@@ -602,15 +681,56 @@ client.on(
                 return;
             }
 
-            const userId =
-                message.author.id;
+            /* =====================================================
+               رصيد
+               رصيد @عضو
+               ops
+               ops @عضو
+               𝐎𝐏𝐬
+               𝐎𝐏𝐬 @عضو
+            ===================================================== */
 
-            const user =
-                getUser(
-                    db,
-                    message.guild.id,
-                    userId
-                );
+            const balanceCommand =
+                content === 'رصيد' ||
+                content.toLowerCase() === 'ops' ||
+                content === '𝐎𝐏𝐬' ||
+                content.startsWith('رصيد ') ||
+                content.toLowerCase().startsWith('ops ') ||
+                content.startsWith('𝐎𝐏𝐬 ');
+
+            if (balanceCommand) {
+                const targetMember =
+                    message.mentions.members.first() ||
+                    message.member;
+
+                const targetUser =
+                    getUser(
+                        db,
+                        message.guild.id,
+                        targetMember.id
+                    );
+
+                return message.channel.send({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#D4AC0D')
+                            .setDescription(
+                                targetMember.id ===
+                                    message.author.id
+                                    ? `رصيدك الحالي : **${formatAmount(
+                                        targetUser.balance
+                                    )} 𝐎𝐏𝐬**`
+                                    : `رصيد العضو ${targetMember} الحالي : **${formatAmount(
+                                        targetUser.balance
+                                    )} 𝐎𝐏𝐬**`
+                            )
+                    ]
+                });
+            }
+
+            /* =====================================================
+               تحويل
+            ===================================================== */
 
             if (
                 content.startsWith(
@@ -635,9 +755,7 @@ client.on(
                     return message.channel.send({
                         embeds: [
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
                                 .setDescription(
                                     '❌ الاستخدام الصحيح: `تحويل @منشن المبلغ` أو `تحويل @منشن نص` أو `تحويل @منشن كامل`'
                                 )
@@ -652,9 +770,7 @@ client.on(
                     return message.channel.send({
                         embeds: [
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
                                 .setDescription(
                                     '❌ لا يمكنك التحويل لنفسك!'
                                 )
@@ -666,18 +782,20 @@ client.on(
 
                 const currentBalance =
                     Number(
-                        user.balance
+                        userBalance(
+                            db,
+                            message.guild.id,
+                            message.author.id
+                        )
                     ) || 0;
 
                 if (
-                    argValue ===
-                    'كامل'
+                    argValue === 'كامل'
                 ) {
                     amount =
                         currentBalance;
                 } else if (
-                    argValue ===
-                    'نص'
+                    argValue === 'نص'
                 ) {
                     amount =
                         Math.floor(
@@ -697,9 +815,7 @@ client.on(
                     return message.channel.send({
                         embeds: [
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
                                 .setDescription(
                                     '❌ يرجى كتابة مبلغ صالح أو كلمة (نص) أو (كامل).\n\nالاختصارات المدعومة: `k` `m` `b` `t`'
                                 )
@@ -714,9 +830,7 @@ client.on(
                     return message.channel.send({
                         embeds: [
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
                                 .setDescription(
                                     '❌ ليس لديك رصيد كافٍ لإتمام عملية التحويل.'
                                 )
@@ -729,7 +843,7 @@ client.on(
                         .addComponents(
                             new ButtonBuilder()
                                 .setCustomId(
-                                    `verify_transfer_${userId}_${targetMember.id}_${amount}`
+                                    `verify_transfer_${message.author.id}_${targetMember.id}_${amount}`
                                 )
                                 .setLabel(
                                     'إظهار رمز التحقق'
@@ -751,7 +865,7 @@ client.on(
                 pendingTransfers.set(
                     transferKey(
                         message.guild.id,
-                        userId
+                        message.author.id
                     ),
                     {
                         guildId:
@@ -768,11 +882,14 @@ client.on(
                 return;
             }
 
+            /* =====================================================
+               توب
+            ===================================================== */
+
             if (
                 content === 'توب' ||
                 content === 'التوب' ||
-                content.toLowerCase() ===
-                    'top' ||
+                content.toLowerCase() === 'top' ||
                 /^توب\s+[1-5]$/i.test(
                     content
                 )
@@ -799,9 +916,7 @@ client.on(
                     return message.channel.send({
                         embeds: [
                             new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
+                                .setColor('#D4AC0D')
                                 .setDescription(
                                     '❌ صفحات التوب من 1 إلى 5 فقط.'
                                 )
@@ -838,8 +953,7 @@ client.on(
                         start + 10
                     );
 
-                let description =
-                    '';
+                let description = '';
 
                 pageUsers.forEach(
                     (
@@ -861,9 +975,7 @@ client.on(
                 return message.channel.send({
                     embeds: [
                         new EmbedBuilder()
-                            .setColor(
-                                '#D4AC0D'
-                            )
+                            .setColor('#D4AC0D')
                             .setTitle(
                                 `قائمة التوب — الصفحة ${page}`
                             )
@@ -873,6 +985,7 @@ client.on(
                     ]
                 });
             }
+
         } catch (error) {
             console.error(
                 '❌ Message Error:',
@@ -882,134 +995,258 @@ client.on(
     }
 );
 
+/* =========================================================
+   GET BALANCE
+========================================================= */
+
+function userBalance(
+    db,
+    guildId,
+    userId
+) {
+    const user =
+        getUser(
+            db,
+            guildId,
+            userId
+        );
+
+    return Number(
+        user.balance
+    ) || 0;
+}
+
+/* =========================================================
+   INTERACTIONS
+   السلاش + زر تأكيد التحويل
+========================================================= */
+
 client.on(
     'interactionCreate',
     async interaction => {
         try {
+
+            /* =====================================================
+               SLASH COMMANDS
+            ===================================================== */
+
             if (
-                !interaction.isButton()
+                interaction.isChatInputCommand()
             ) {
+                if (!interaction.guild) {
+                    return interaction.reply({
+                        content:
+                            '❌ هذا الأمر يعمل داخل السيرفر فقط.',
+                        ephemeral: true
+                    });
+                }
+
+                const db =
+                    loadDB();
+
+                const guildId =
+                    interaction.guild.id;
+
+                const guildData =
+                    ensureGuild(
+                        db,
+                        guildId
+                    );
+
+                if (
+                    interaction.commandName ===
+                    'currency'
+                ) {
+                    if (
+                        !isAdmin(
+                            interaction.member
+                        )
+                    ) {
+                        return interaction.reply({
+                            content:
+                                '❌ هذا الأمر مخصص للإداريين فقط.',
+                            ephemeral: true
+                        });
+                    }
+
+                    const subcommand =
+                        interaction.options.getSubcommand();
+
+                    if (
+                        subcommand ===
+                        'enable'
+                    ) {
+                        guildData.economyChannelId =
+                            interaction.channel.id;
+
+                        saveDB(db);
+
+                        return interaction.reply({
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setColor(
+                                        '#D4AC0D'
+                                    )
+                                    .setDescription(
+                                        `✅ تم تفعيل نظام العملة في <#${interaction.channel.id}>.\n\n💾 تم حفظ التفعيل للسيرفر.`
+                                    )
+                            ]
+                        });
+                    }
+
+                    if (
+                        subcommand ===
+                        'disable'
+                    ) {
+                        guildData.economyChannelId =
+                            null;
+
+                        cleanupPendingForGuild(
+                            guildId
+                        );
+
+                        saveDB(db);
+
+                        return interaction.reply({
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setColor(
+                                        '#D4AC0D'
+                                    )
+                                    .setDescription(
+                                        '✅ تم تعطيل نظام العملة في هذا السيرفر.'
+                                    )
+                            ]
+                        });
+                    }
+                }
+
                 return;
             }
 
+            /* =====================================================
+               زر إظهار رمز التحويل
+            ===================================================== */
+
             if (
-                !interaction.customId.startsWith(
+                interaction.isButton() &&
+                interaction.customId.startsWith(
                     'verify_transfer_'
                 )
             ) {
-                return;
-            }
+                if (!interaction.guild) {
+                    return interaction.reply({
+                        content:
+                            '❌ هذا الأمر يعمل داخل السيرفر فقط.',
+                        ephemeral: true
+                    });
+                }
 
-            if (!interaction.guild) {
-                return interaction.reply({
-                    content:
-                        '❌ هذا الأمر يعمل داخل السيرفر فقط.',
-                    ephemeral: true
-                });
-            }
+                const parts =
+                    interaction.customId.split(
+                        '_'
+                    );
 
-            const parts =
-                interaction.customId.split(
-                    '_'
-                );
+                const senderId =
+                    parts[2];
 
-            const senderId =
-                parts[2];
+                const targetId =
+                    parts[3];
 
-            const targetId =
-                parts[3];
+                const amount =
+                    parseInt(
+                        parts[4]
+                    );
 
-            const amount =
-                parseInt(
-                    parts[4]
-                );
-
-            if (
-                interaction.user.id !==
-                senderId
-            ) {
-                return interaction.reply({
-                    content:
-                        '❌ هذا الزر ليس مخصصاً لك.',
-                    ephemeral: true
-                });
-            }
-
-            const key =
-                transferKey(
-                    interaction.guild.id,
+                if (
+                    interaction.user.id !==
                     senderId
-                );
+                ) {
+                    return interaction.reply({
+                        content:
+                            '❌ هذا الزر ليس مخصصاً لك.',
+                        ephemeral: true
+                    });
+                }
 
-            const transfer =
-                pendingTransfers.get(
-                    key
-                );
+                const key =
+                    transferKey(
+                        interaction.guild.id,
+                        senderId
+                    );
 
-            if (!transfer) {
-                return interaction.reply({
-                    content:
-                        '❌ عملية التحويل انتهت أو غير موجودة.',
-                    ephemeral: true
-                });
-            }
+                const transfer =
+                    pendingTransfers.get(
+                        key
+                    );
 
-            const db = loadDB();
+                if (!transfer) {
+                    return interaction.reply({
+                        content:
+                            '❌ عملية التحويل انتهت أو غير موجودة.',
+                        ephemeral: true
+                    });
+                }
 
-            const sender =
+                const db =
+                    loadDB();
+
+                const sender =
+                    getUser(
+                        db,
+                        interaction.guild.id,
+                        senderId
+                    );
+
                 getUser(
                     db,
                     interaction.guild.id,
-                    senderId
+                    targetId
                 );
 
-            getUser(
-                db,
-                interaction.guild.id,
-                targetId
-            );
+                if (
+                    sender.balance <
+                    amount
+                ) {
+                    pendingTransfers.delete(
+                        key
+                    );
 
-            if (
-                sender.balance <
-                amount
-            ) {
-                pendingTransfers.delete(
-                    key
+                    return interaction.reply({
+                        content:
+                            '❌ لم يعد لديك رصيد كافٍ لإتمام العملية.',
+                        ephemeral: true
+                    });
+                }
+
+                let code = '';
+
+                for (
+                    let i = 0;
+                    i < 6;
+                    i++
+                ) {
+                    code +=
+                        Math.floor(
+                            Math.random() * 10
+                        );
+                }
+
+                transfer.code =
+                    code;
+
+                pendingTransfers.set(
+                    key,
+                    transfer
                 );
 
                 return interaction.reply({
                     content:
-                        '❌ لم يعد لديك رصيد كافٍ لإتمام العملية.',
+                        `🔐 رمز التحقق الخاص بالتحويل:\n\n**${code}**\n\nقم بإرسال الرمز في روم العملات لتأكيد العملية.`,
                     ephemeral: true
                 });
             }
 
-            let code = '';
-
-            for (
-                let i = 0;
-                i < 6;
-                i++
-            ) {
-                code +=
-                    Math.floor(
-                        Math.random() * 10
-                    );
-            }
-
-            transfer.code =
-                code;
-
-            pendingTransfers.set(
-                key,
-                transfer
-            );
-
-            return interaction.reply({
-                content:
-                    `🔐 رمز التحقق الخاص بالتحويل:\n\n**${code}**\n\nقم بإرسال الرمز في روم العملات لتأكيد العملية.`,
-                ephemeral: true
-            });
         } catch (error) {
             console.error(
                 '❌ Interaction Error:',
@@ -1031,6 +1268,10 @@ client.on(
         }
     }
 );
+
+/* =========================================================
+   CONFIRM TRANSFER
+========================================================= */
 
 client.on(
     'messageCreate',
@@ -1059,157 +1300,162 @@ client.on(
                 );
 
             if (
-                pendingTransfers.has(
+                !pendingTransfers.has(
                     key
                 )
             ) {
-                const transfer =
-                    pendingTransfers.get(
-                        key
+                return;
+            }
+
+            const transfer =
+                pendingTransfers.get(
+                    key
+                );
+
+            if (
+                !transfer.code ||
+                content !==
+                    transfer.code
+            ) {
+                return;
+            }
+
+            pendingTransfers.delete(
+                key
+            );
+
+            await message.delete()
+                .catch(
+                    () => {}
+                );
+
+            if (transfer.botMsg) {
+                await transfer.botMsg
+                    .delete()
+                    .catch(
+                        () => {}
                     );
+            }
 
-                if (
-                    transfer.code &&
-                    content ===
-                        transfer.code
-                ) {
-                    pendingTransfers.delete(
-                        key
-                    );
+            const db =
+                loadDB();
 
-                    await message.delete()
-                        .catch(
-                            () => {}
-                        );
+            const sender =
+                getUser(
+                    db,
+                    message.guild.id,
+                    message.author.id
+                );
 
-                    if (transfer.botMsg) {
-                        await transfer.botMsg
-                            .delete()
-                            .catch(
-                                () => {}
-                            );
-                    }
+            const target =
+                getUser(
+                    db,
+                    message.guild.id,
+                    transfer.targetId
+                );
 
-                    const db =
-                        loadDB();
-
-                    const sender =
-                        getUser(
-                            db,
-                            message.guild.id,
-                            message.author.id
-                        );
-
-                    const target =
-                        getUser(
-                            db,
-                            message.guild.id,
-                            transfer.targetId
-                        );
-
-                    if (
-                        sender.balance <
-                        transfer.amount
-                    ) {
-                        return message.channel.send({
-                            embeds: [
-                                new EmbedBuilder()
-                                    .setColor(
-                                        '#D4AC0D'
-                                    )
-                                    .setDescription(
-                                        '❌ ليس لديك رصيد كافٍ لإتمام عملية التحويل.'
-                                    )
-                            ]
-                        });
-                    }
-
-                    sender.balance -=
-                        transfer.amount;
-
-                    target.balance +=
-                        transfer.amount;
-
-                    saveDB(db);
-
-                    const targetMember =
-                        await message.guild.members
-                            .fetch(
-                                transfer.targetId
-                            )
-                            .catch(
-                                () => null
-                            );
-
-                    const receiptEmbed =
+            if (
+                sender.balance <
+                transfer.amount
+            ) {
+                return message.channel.send({
+                    embeds: [
                         new EmbedBuilder()
                             .setColor(
                                 '#D4AC0D'
                             )
-                            .setTitle(
-                                'إيصال تحويل'
+                            .setDescription(
+                                '❌ ليس لديك رصيد كافٍ لإتمام عملية التحويل.'
                             )
-                            .addFields(
-                                {
-                                    name:
-                                        'المبلغ',
-                                    value:
-                                        `\`\`\`fix\n${formatAmount(
-                                            transfer.amount
-                                        )} 𝐎𝐏𝐬\n\`\`\``
-                                },
-                                {
-                                    name:
-                                        'إلى',
-                                    value:
-                                        `\`\`\`ini\n[ ${
-                                            targetMember
-                                                ? targetMember.user.tag
-                                                : transfer.targetId
-                                        } ]\n\`\`\``
-                                },
-                                {
-                                    name:
-                                        'من',
-                                    value:
-                                        `\`\`\`ini\n[ ${message.author.tag} ]\n\`\`\``
-                                }
-                            )
-                            .setTimestamp();
+                    ]
+                });
+            }
 
-                    await message.author.send({
-                        embeds: [
-                            receiptEmbed
-                        ]
-                    }).catch(
-                        () => {}
+            sender.balance -=
+                transfer.amount;
+
+            target.balance +=
+                transfer.amount;
+
+            saveDB(db);
+
+            const targetMember =
+                await message.guild.members
+                    .fetch(
+                        transfer.targetId
+                    )
+                    .catch(
+                        () => null
                     );
 
-                    if (targetMember) {
-                        await targetMember.send({
-                            embeds: [
-                                receiptEmbed
-                            ]
-                        }).catch(
-                            () => {}
-                        );
-                    }
+            const receiptEmbed =
+                new EmbedBuilder()
+                    .setColor(
+                        '#D4AC0D'
+                    )
+                    .setTitle(
+                        'إيصال تحويل'
+                    )
+                    .addFields(
+                        {
+                            name:
+                                'المبلغ',
+                            value:
+                                `\`\`\`fix\n${formatAmount(
+                                    transfer.amount
+                                )} 𝐎𝐏𝐬\n\`\`\``
+                        },
+                        {
+                            name:
+                                'إلى',
+                            value:
+                                `\`\`\`ini\n[ ${
+                                    targetMember
+                                        ? targetMember.user.tag
+                                        : transfer.targetId
+                                } ]\n\`\`\``
+                        },
+                        {
+                            name:
+                                'من',
+                            value:
+                                `\`\`\`ini\n[ ${message.author.tag} ]\n\`\`\``
+                        }
+                    )
+                    .setTimestamp();
 
-                    return message.channel.send({
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor(
-                                    '#D4AC0D'
-                                )
-                                .setDescription(
-                                    `✅ تم التحويل بنجاح بقيمة **${formatAmount(
-                                        transfer.amount
-                                    )} 𝐎𝐏𝐬**.`
-                                )
-                        ]
-                    });
-                }
+            await message.author.send({
+                embeds: [
+                    receiptEmbed
+                ]
+            }).catch(
+                () => {}
+            );
+
+            if (targetMember) {
+                await targetMember.send({
+                    embeds: [
+                        receiptEmbed
+                    ]
+                }).catch(
+                    () => {}
+                );
             }
+
+            return message.channel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(
+                            '#D4AC0D'
+                        )
+                        .setDescription(
+                            `✅ تم التحويل بنجاح بقيمة **${formatAmount(
+                                transfer.amount
+                            )} 𝐎𝐏𝐬**.`
+                        )
+                ]
+            });
+
         } catch (error) {
             console.error(
                 '❌ Transfer Error:',
@@ -1218,6 +1464,10 @@ client.on(
         }
     }
 );
+
+/* =========================================================
+   ERRORS
+========================================================= */
 
 client.on(
     'error',
@@ -1248,6 +1498,10 @@ process.on(
         );
     }
 );
+
+/* =========================================================
+   SAVE BEFORE SHUTDOWN
+========================================================= */
 
 function gracefulSave() {
     try {
@@ -1294,6 +1548,10 @@ process.on(
         process.exit(0);
     }
 );
+
+/* =========================================================
+   LOGIN
+========================================================= */
 
 client.login(
     TOKEN
